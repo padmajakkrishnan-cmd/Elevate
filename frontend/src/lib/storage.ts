@@ -1,4 +1,4 @@
-import type { User, PlayerProfile, GameStat, TrainingSession, AISummary, ShareLink } from '@/types';
+import type { User, PlayerProfile, GameStat, TrainingSession, AISummary, ShareLink, Goal } from '@/types';
 
 const STORAGE_KEYS = {
   USER: 'elevate_user',
@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   SHARE_LINKS: 'elevate_share_links',
   PERSONAL_BESTS: 'elevate_personal_bests',
   ACHIEVEMENTS: 'elevate_achievements',
+  GOALS: 'elevate_goals',
 } as const;
 
 // Generic storage functions
@@ -128,8 +129,43 @@ export const shareLinksStorage = {
     links.push(link);
     shareLinksStorage.set(links);
   },
+  update: (id: string, updatedLink: Partial<ShareLink>): void => {
+    const links = shareLinksStorage.getAll();
+    const index = links.findIndex(l => l.id === id);
+    if (index !== -1) {
+      links[index] = { ...links[index], ...updatedLink };
+      shareLinksStorage.set(links);
+    }
+  },
   delete: (id: string): void => {
     const links = shareLinksStorage.getAll().filter(l => l.id !== id);
     shareLinksStorage.set(links);
+  },
+  getByToken: (token: string): ShareLink | null => {
+    const links = shareLinksStorage.getAll();
+    return links.find(l => l.token === token) || null;
+  },
+};
+
+// Goals functions
+export const goalsStorage = {
+  getAll: (): Goal[] => storage.get<Goal[]>(STORAGE_KEYS.GOALS) || [],
+  set: (goals: Goal[]): void => storage.set(STORAGE_KEYS.GOALS, goals),
+  add: (goal: Goal): void => {
+    const goals = goalsStorage.getAll();
+    goals.push(goal);
+    goalsStorage.set(goals);
+  },
+  update: (id: string, updatedGoal: Partial<Goal>): void => {
+    const goals = goalsStorage.getAll();
+    const index = goals.findIndex(g => g.id === id);
+    if (index !== -1) {
+      goals[index] = { ...goals[index], ...updatedGoal, updatedAt: new Date().toISOString() };
+      goalsStorage.set(goals);
+    }
+  },
+  delete: (id: string): void => {
+    const goals = goalsStorage.getAll().filter(g => g.id !== id);
+    goalsStorage.set(goals);
   },
 };

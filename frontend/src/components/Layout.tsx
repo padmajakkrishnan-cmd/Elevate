@@ -9,14 +9,28 @@ import {
   Lightbulb, 
   Share2,
   LogOut,
-  Menu
+  Menu,
+  Target,
+  Trash2
 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useState } from 'react';
+import { storage } from '@/lib/storage';
+import { showSuccess } from '@/utils/toast';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,14 +41,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  const handleDeleteAccount = () => {
+    storage.clear();
+    showSuccess('Account deleted successfully');
+    navigate('/');
+  };
+
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/goals', label: 'Goals', icon: Target },
     { path: '/profile', label: 'Profile', icon: User },
     { path: '/stats/games', label: 'Game Stats', icon: TrendingUp },
     { path: '/stats/training', label: 'Training', icon: Dumbbell },
@@ -94,14 +116,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <nav className="flex flex-col gap-2">
                   <NavLinks mobile />
                 </nav>
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 mt-4"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span>Logout</span>
-                </Button>
+                <div className="space-y-2 mt-4 pt-4 border-t">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span>Logout</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    <span>Delete Account</span>
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
@@ -130,7 +162,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <NavLinks />
           </nav>
 
-          <div className="p-4 border-t">
+          <div className="p-4 border-t space-y-2">
             <Button
               variant="ghost"
               className="w-full justify-start gap-3"
@@ -138,6 +170,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               <LogOut className="w-5 h-5" />
               <span>Logout</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="w-5 h-5" />
+              <span>Delete Account</span>
             </Button>
           </div>
         </aside>
@@ -147,6 +187,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your account and all your data including profile, stats, goals, and training sessions. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

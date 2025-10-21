@@ -15,8 +15,27 @@ export interface PlayerProfile {
   weight?: string;
   wingspan?: string;
   goals: string;
+  photo?: string;
+  bio?: string;
   photos: string[];
   videos: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Goal {
+  id: string;
+  userId: string;
+  type: 'weekly' | 'monthly' | 'seasonal';
+  category: 'performance' | 'training' | 'skill';
+  title: string;
+  description: string;
+  targetValue?: number;
+  currentValue?: number;
+  metric?: string;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'completed' | 'missed';
   createdAt: string;
   updatedAt: string;
 }
@@ -93,14 +112,11 @@ export interface Achievement {
 
 export interface ShareLink {
   id: string;
+  token: string;
   userId: string;
-  permissions: {
-    viewProfile: boolean;
-    viewStats: boolean;
-    viewSummaries: boolean;
-  };
-  recipientName?: string;
-  expiryDate?: string;
+  playerName: string;
   createdAt: string;
+  expiresAt?: string;
+  viewCount: number;
   lastViewed?: string;
 }
