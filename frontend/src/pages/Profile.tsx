@@ -1,20 +1,47 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Target, TrendingUp } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProfileEditDialog } from '@/components/ProfileEditDialog';
+import { User, Mail, Target, TrendingUp, Trash2, Edit } from 'lucide-react';
+import { storage } from '@/lib/storage';
+import { showSuccess } from '@/utils/toast';
 
 const Profile = () => {
   const { profile, user } = useAuth();
+  const navigate = useNavigate();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteAccount = () => {
+    storage.clear();
+    showSuccess('Account deleted successfully');
+    navigate('/');
+  };
 
   if (!profile) return null;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Player Profile</h1>
-        <p className="text-muted-foreground">
-          Your athlete information and goals
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Player Profile</h1>
+          <p className="text-muted-foreground">
+            Your athlete information and goals
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <ProfileEditDialog />
+          <Button 
+            variant="destructive" 
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Account
+          </Button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -76,6 +103,13 @@ const Profile = () => {
                 </div>
               </div>
             )}
+
+            {profile.bio && (
+              <div className="pt-4 border-t">
+                <p className="text-sm font-semibold mb-2">Bio</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -116,6 +150,49 @@ const Profile = () => {
           <p className="text-muted-foreground whitespace-pre-wrap">{profile.goals}</p>
         </CardContent>
       </Card>
+
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardDescription>
+            Irreversible actions that will permanently affect your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg">
+            <div>
+              <p className="font-semibold">Delete Account</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete your account and all associated data
+              </p>
+            </div>
+            <Button 
+              variant="destructive" 
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your account and all your data including profile, stats, goals, training sessions, and notes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
