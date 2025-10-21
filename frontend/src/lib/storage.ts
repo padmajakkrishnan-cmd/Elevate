@@ -1,4 +1,4 @@
-import type { User, PlayerProfile, GameStat, TrainingSession, AISummary, ShareLink, Goal } from '@/types';
+import type { User, PlayerProfile, GameStat, TrainingSession, AISummary, ShareLink, Goal, PracticeNote } from '@/types';
 
 const STORAGE_KEYS = {
   USER: 'elevate_user',
@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   PERSONAL_BESTS: 'elevate_personal_bests',
   ACHIEVEMENTS: 'elevate_achievements',
   GOALS: 'elevate_goals',
+  PRACTICE_NOTES: 'elevate_practice_notes',
 } as const;
 
 // Generic storage functions
@@ -167,5 +168,28 @@ export const goalsStorage = {
   delete: (id: string): void => {
     const goals = goalsStorage.getAll().filter(g => g.id !== id);
     goalsStorage.set(goals);
+  },
+};
+
+// Practice notes functions
+export const practiceNotesStorage = {
+  getAll: (): PracticeNote[] => storage.get<PracticeNote[]>(STORAGE_KEYS.PRACTICE_NOTES) || [],
+  set: (notes: PracticeNote[]): void => storage.set(STORAGE_KEYS.PRACTICE_NOTES, notes),
+  add: (note: PracticeNote): void => {
+    const notes = practiceNotesStorage.getAll();
+    notes.push(note);
+    practiceNotesStorage.set(notes);
+  },
+  update: (id: string, updatedNote: Partial<PracticeNote>): void => {
+    const notes = practiceNotesStorage.getAll();
+    const index = notes.findIndex(n => n.id === id);
+    if (index !== -1) {
+      notes[index] = { ...notes[index], ...updatedNote, updatedAt: new Date().toISOString() };
+      practiceNotesStorage.set(notes);
+    }
+  },
+  delete: (id: string): void => {
+    const notes = practiceNotesStorage.getAll().filter(n => n.id !== id);
+    practiceNotesStorage.set(notes);
   },
 };

@@ -13,6 +13,7 @@ import Goals from "./pages/Goals";
 import Profile from "./pages/Profile";
 import GameStats from "./pages/GameStats";
 import TrainingStats from "./pages/TrainingStats";
+import Notes from "./pages/Notes";
 import Insights from "./pages/Insights";
 import Share from "./pages/Share";
 import SharedReport from "./pages/SharedReport";
@@ -57,6 +58,11 @@ const App = () => (
             <Route path="/stats/training" element={
               <ProtectedRoute requireProfile>
                 <Layout><TrainingStats /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/notes" element={
+              <ProtectedRoute requireProfile>
+                <Layout><Notes /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/insights" element={

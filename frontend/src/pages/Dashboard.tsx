@@ -5,6 +5,7 @@ import { gameStatsStorage, trainingStorage } from '@/lib/storage';
 import { TrendingUp, Target, Award, Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import type { GameStat, TrainingSession } from '@/types';
 
 const Dashboard = () => {
@@ -44,7 +45,33 @@ const Dashboard = () => {
     return games.reduce((max, game) => game.points > max.points ? game : max);
   };
 
+  const getPointsChartData = () => {
+    return games
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-10)
+      .map(game => ({
+        date: new Date(game.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        points: game.points,
+        assists: game.assists,
+        rebounds: game.rebounds,
+      }));
+  };
+
+  const getShootingChartData = () => {
+    return sessions
+      .filter(s => s.metrics.freeThrowPercentage || s.metrics.threePointPercentage)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-10)
+      .map(session => ({
+        date: new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        ft: session.metrics.freeThrowPercentage || 0,
+        threePoint: session.metrics.threePointPercentage || 0,
+      }));
+  };
+
   const personalBest = getPersonalBest();
+  const pointsData = getPointsChartData();
+  const shootingData = getShootingChartData();
 
   return (
     <div className="space-y-6">
@@ -117,6 +144,48 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts */}
+      {pointsData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Points Trend</CardTitle>
+            <CardDescription>Your scoring performance over recent games</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={pointsData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="points" stroke="hsl(var(--primary))" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {shootingData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Shooting Progress</CardTitle>
+            <CardDescription>Free throw and 3-point shooting percentages</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={shootingData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="ft" fill="hsl(var(--primary))" name="Free Throw %" />
+                <Bar dataKey="threePoint" fill="hsl(var(--secondary))" name="3-Point %" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {games.length === 0 && sessions.length === 0 ? (
         <Card>
