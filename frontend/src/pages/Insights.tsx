@@ -7,8 +7,9 @@ import { Lightbulb, TrendingUp, TrendingDown, Target, Sparkles } from 'lucide-re
 import { gameStatsStorage, trainingStorage, goalsStorage, summariesStorage } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateInsights } from '@/lib/aiInsights';
-import type { AISummary } from '@/types';
+import type { AISummary, GameStat, TrainingSession } from '@/types';
 import { showSuccess } from '@/utils/toast';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts';
 
 const Insights = () => {
   const { user } = useAuth();
@@ -166,6 +167,55 @@ const Insights = () => {
 };
 
 const SummaryCard = ({ summary }: { summary: AISummary }) => {
+  const { user } = useAuth();
+  
+  // Get data for the summary period
+  const getPerformanceData = () => {
+    const games = gameStatsStorage.getAll().filter(g => g.userId === user?.id);
+    const periodGames = games.filter(g => {
+      const gameDate = new Date(g.date);
+      return gameDate >= new Date(summary.startDate) && gameDate <= new Date(summary.endDate);
+    });
+
+    return periodGames
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map(game => ({
+        date: new Date(game.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        points: game.points,
+        assists: game.assists,
+        rebounds: game.rebounds,
+      }));
+  };
+
+  const getShootingData = () => {
+    const sessions = trainingStorage.getAll().filter(s => s.userId === user?.id);
+    const periodSessions = sessions.filter(s => {
+      const sessionDate = new Date(s.date);
+      return sessionDate >= new Date(summary.startDate) && sessionDate <= new Date(summary.endDate);
+    });
+
+    return periodSessions
+      .filter(s => s.metrics.freeThrowPercentage || s.metrics.threePointPercentage)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map(session => ({
+        date: new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        'Free Throw %': session.metrics.freeThrowPercentage || 0,
+        '3-Point %': session.metrics.threePointPercentage || 0,
+      }));
+  };
+
+  const getImprovementChartData = () => {
+    return summary.improvements.map(imp => ({
+      metric: imp.metric,
+      change: Math.abs(imp.change),
+      fill: imp.change > 0 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
+    }));
+  };
+
+  const performanceData = getPerformanceData();
+  const shootingData = getShootingData();
+  const improvementData = getImprovementChartData();
+
   return (
     <Card>
       <CardHeader>
@@ -183,6 +233,49 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Performance Trend Chart */}
+        {performanceData.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Performance Trend
+            </h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={performanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Area type="monotone" dataKey="points" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="Points" />
+                <Area type="monotone" dataKey="assists" stroke="hsl(var(--secondary))" fill="hsl(var(--secondary))" fillOpacity={0.3} name="Assists" />
+                <Area type="monotone" dataKey="rebounds" stroke="hsl(var(--accent))" fill="hsl(var(--accent))" fillOpacity={0.3} name="Rebounds" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Shooting Progress Chart */}
+        {shootingData.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Shooting Progress
+            </h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={shootingData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="Free Throw %" stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line type="monotone" dataKey="3-Point %" stroke="hsl(var(--secondary))" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
         {/* Key Insights */}
         {summary.insights.length > 0 && (
           <div>
@@ -201,14 +294,23 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
           </div>
         )}
 
-        {/* Improvements */}
-        {summary.improvements.length > 0 && (
+        {/* Improvements Chart */}
+        {improvementData.length > 0 && (
           <div>
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Improvements
             </h3>
-            <div className="space-y-3">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={improvementData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="metric" type="category" width={120} />
+                <Tooltip />
+                <Bar dataKey="change" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="space-y-3 mt-4">
               {summary.improvements.map((improvement, idx) => (
                 <div key={idx} className="p-3 border rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
