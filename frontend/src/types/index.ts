@@ -78,18 +78,6 @@ export interface TrainingSession {
   updatedAt: string;
 }
 
-export interface PracticeNote {
-  id: string;
-  userId: string;
-  date: string;
-  type: 'practice' | 'workout' | 'nutrition';
-  title: string;
-  content: string;
-  tags?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface AISummary {
   id: string;
   userId: string;

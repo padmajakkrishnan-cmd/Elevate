@@ -12,7 +12,6 @@ import {
   Menu,
   Target,
   Trash2,
-  BookOpen,
   Home
 } from 'lucide-react';
 import {
@@ -62,7 +61,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/profile', label: 'Profile', icon: User },
     { path: '/stats/games', label: 'Game Stats', icon: TrendingUp },
     { path: '/stats/training', label: 'Training', icon: Dumbbell },
-    { path: '/notes', label: 'Notes', icon: BookOpen },
     { path: '/insights', label: 'Insights', icon: Lightbulb },
     { path: '/share', label: 'Share', icon: Share2 },
   ];
