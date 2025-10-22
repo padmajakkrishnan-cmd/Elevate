@@ -14,7 +14,7 @@ export interface PlayerProfile {
   height?: string;
   weight?: string;
   wingspan?: string;
-  goals: string;
+  goals?: string;
   photo?: string;
   bio?: string;
   photos: string[];

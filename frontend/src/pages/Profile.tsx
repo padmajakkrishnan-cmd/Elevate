@@ -29,7 +29,7 @@ const Profile = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2 text-white">Player Profile</h1>
           <p className="text-gray-400">
-            Your athlete information and goals
+            Your athlete information
           </p>
         </div>
         <div className="flex gap-2">
@@ -133,16 +133,6 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="gradient-card-green border-green-500/20">
-        <CardHeader>
-          <CardTitle className="text-white">Your Goals</CardTitle>
-          <CardDescription className="text-gray-400">What you're working towards</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-300 whitespace-pre-wrap">{profile.goals}</p>
-        </CardContent>
-      </Card>
 
       <Card className="gradient-card-orange border-red-500/20">
         <CardHeader>

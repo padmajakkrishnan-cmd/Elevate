@@ -26,7 +26,6 @@ export const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ trigger })
     height: '',
     weight: '',
     wingspan: '',
-    goals: '',
     bio: '',
   });
 
@@ -41,7 +40,6 @@ export const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ trigger })
         height: profile.height || '',
         weight: profile.weight || '',
         wingspan: profile.wingspan || '',
-        goals: profile.goals,
         bio: profile.bio || '',
       });
     }
@@ -61,7 +59,6 @@ export const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ trigger })
       height: formData.height || undefined,
       weight: formData.weight || undefined,
       wingspan: formData.wingspan || undefined,
-      goals: formData.goals,
       bio: formData.bio || undefined,
       updatedAt: new Date().toISOString(),
     };
@@ -89,7 +86,7 @@ export const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ trigger })
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogDescription>
-            Update your player information and goals
+            Update your player information
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -200,18 +197,6 @@ export const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ trigger })
               onChange={(e) => handleChange('bio', e.target.value)}
               placeholder="Tell us about yourself, your playing style, achievements..."
               rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="goals">Your Goals *</Label>
-            <Textarea
-              id="goals"
-              value={formData.goals}
-              onChange={(e) => handleChange('goals', e.target.value)}
-              placeholder="What do you want to achieve? (e.g., Make varsity team, improve 3-point shooting, increase vertical jump)"
-              rows={4}
-              required
             />
           </div>
 

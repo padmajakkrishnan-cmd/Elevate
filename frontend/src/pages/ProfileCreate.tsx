@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { PlayerProfile } from '@/types';
@@ -24,7 +23,6 @@ const ProfileCreate = () => {
     height: '',
     weight: '',
     wingspan: '',
-    goals: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -67,7 +65,7 @@ const ProfileCreate = () => {
           <CardHeader>
             <CardTitle>Player Information</CardTitle>
             <CardDescription>
-              Tell us about yourself and your athletic goals
+              Tell us about yourself
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -169,18 +167,6 @@ const ProfileCreate = () => {
                     placeholder="6'0&quot;"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="goals">Your Goals *</Label>
-                <Textarea
-                  id="goals"
-                  value={formData.goals}
-                  onChange={(e) => handleChange('goals', e.target.value)}
-                  placeholder="What do you want to achieve? (e.g., Make varsity team, improve 3-point shooting, increase vertical jump)"
-                  rows={4}
-                  required
-                />
               </div>
 
               <Button type="submit" className="w-full" size="lg">

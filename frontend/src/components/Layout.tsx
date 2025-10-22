@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   Target,
-  Trash2,
   Home
 } from 'lucide-react';
 import {
@@ -19,19 +18,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { useState } from 'react';
-import { storage } from '@/lib/storage';
-import { showSuccess } from '@/utils/toast';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -42,16 +29,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleLogout = () => {
     logout();
-    navigate('/');
-  };
-
-  const handleDeleteAccount = () => {
-    storage.clear();
-    showSuccess('Account deleted successfully');
     navigate('/');
   };
 
@@ -123,7 +103,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <nav className="flex flex-col gap-2">
                   <NavLinks mobile />
                 </nav>
-                <div className="space-y-2 mt-4 pt-4 border-t">
+                <div className="mt-4 pt-4 border-t">
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-3"
@@ -131,14 +111,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   >
                     <LogOut className="w-5 h-5" />
                     <span>Logout</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-3 text-destructive hover:text-destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    <span>Delete Account</span>
                   </Button>
                 </div>
               </div>
@@ -169,7 +141,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <NavLinks />
           </nav>
 
-          <div className="p-4 border-t space-y-2">
+          <div className="p-4 border-t">
             <Button
               variant="ghost"
               className="w-full justify-start gap-3"
@@ -177,14 +149,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               <LogOut className="w-5 h-5" />
               <span>Logout</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 text-destructive hover:text-destructive"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="w-5 h-5" />
-              <span>Delete Account</span>
             </Button>
           </div>
         </aside>
@@ -219,23 +183,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           })}
         </div>
       </nav>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Account?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
-              This will permanently delete your account and all your data including profile, stats, goals, and training sessions. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-muted text-white border-border">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete Account
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
