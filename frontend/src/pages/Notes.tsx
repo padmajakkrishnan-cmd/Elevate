@@ -69,8 +69,8 @@ const Notes = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Practice Notes</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-2 text-white">Practice Notes</h1>
+          <p className="text-gray-400">
             Track practice observations, workouts, and nutrition
           </p>
         </div>
@@ -78,78 +78,77 @@ const Notes = () => {
       </div>
 
       {notes.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <BookOpen className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle>No Notes Yet</CardTitle>
-                <CardDescription>
-                  Start documenting your practice sessions, workouts, and nutrition
-                </CardDescription>
-              </div>
+        <Card className="gradient-card-blue border-blue-500/20">
+          <CardContent className="p-8 text-center">
+            <div className="gradient-icon-blue p-4 rounded-2xl w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <BookOpen className="w-8 h-8 text-white" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Keep track of what you're working on, how you're feeling, and what you're learning. These notes help you reflect on your progress and identify patterns.
+            <h3 className="text-xl font-semibold text-white mb-2">No Notes Yet</h3>
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              Start documenting your practice sessions, workouts, and nutrition. These notes help you reflect on your progress and identify patterns.
             </p>
             <PracticeNoteDialog onClose={loadNotes} />
           </CardContent>
         </Card>
       ) : (
         <Tabs defaultValue="all" className="w-full">
-          <TabsList>
-            <TabsTrigger value="all">All Notes ({notes.length})</TabsTrigger>
-            <TabsTrigger value="practice">Practice ({practiceNotes.length})</TabsTrigger>
-            <TabsTrigger value="workout">Workouts ({workoutNotes.length})</TabsTrigger>
-            <TabsTrigger value="nutrition">Nutrition ({nutritionNotes.length})</TabsTrigger>
+          <TabsList className="bg-card border border-white/10">
+            <TabsTrigger value="all" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300">
+              All Notes ({notes.length})
+            </TabsTrigger>
+            <TabsTrigger value="practice" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300">
+              Practice ({practiceNotes.length})
+            </TabsTrigger>
+            <TabsTrigger value="workout" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
+              Workouts ({workoutNotes.length})
+            </TabsTrigger>
+            <TabsTrigger value="nutrition" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-300">
+              Nutrition ({nutritionNotes.length})
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-3">
+          <TabsContent value="all" className="space-y-3 mt-4">
             {notes.map((note) => (
               <NoteCard key={note.id} note={note} onEdit={handleEdit} onDelete={setDeleteNote} getIcon={getIcon} getTypeLabel={getTypeLabel} />
             ))}
           </TabsContent>
 
-          <TabsContent value="practice" className="space-y-3">
+          <TabsContent value="practice" className="space-y-3 mt-4">
             {practiceNotes.length > 0 ? (
               practiceNotes.map((note) => (
                 <NoteCard key={note.id} note={note} onEdit={handleEdit} onDelete={setDeleteNote} getIcon={getIcon} getTypeLabel={getTypeLabel} />
               ))
             ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
+              <Card className="gradient-card-blue border-blue-500/20">
+                <CardContent className="py-8 text-center text-gray-400">
                   No practice notes yet. Add one to get started!
                 </CardContent>
               </Card>
             )}
           </TabsContent>
 
-          <TabsContent value="workout" className="space-y-3">
+          <TabsContent value="workout" className="space-y-3 mt-4">
             {workoutNotes.length > 0 ? (
               workoutNotes.map((note) => (
                 <NoteCard key={note.id} note={note} onEdit={handleEdit} onDelete={setDeleteNote} getIcon={getIcon} getTypeLabel={getTypeLabel} />
               ))
             ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
+              <Card className="gradient-card-purple border-purple-500/20">
+                <CardContent className="py-8 text-center text-gray-400">
                   No workout notes yet. Add one to get started!
                 </CardContent>
               </Card>
             )}
           </TabsContent>
 
-          <TabsContent value="nutrition" className="space-y-3">
+          <TabsContent value="nutrition" className="space-y-3 mt-4">
             {nutritionNotes.length > 0 ? (
               nutritionNotes.map((note) => (
                 <NoteCard key={note.id} note={note} onEdit={handleEdit} onDelete={setDeleteNote} getIcon={getIcon} getTypeLabel={getTypeLabel} />
               ))
             ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
+              <Card className="gradient-card-green border-green-500/20">
+                <CardContent className="py-8 text-center text-gray-400">
                   No nutrition notes yet. Add one to get started!
                 </CardContent>
               </Card>
@@ -163,15 +162,15 @@ const Notes = () => {
       )}
 
       <AlertDialog open={!!deleteNote} onOpenChange={() => setDeleteNote(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Note?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">Delete Note?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
               Are you sure you want to delete "{deleteNote?.title}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-muted text-white border-border">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
@@ -195,30 +194,46 @@ const NoteCard = ({
   getIcon: (type: PracticeNote['type']) => JSX.Element;
   getTypeLabel: (type: PracticeNote['type']) => string;
 }) => {
+  const getGradientClass = (type: PracticeNote['type']) => {
+    switch (type) {
+      case 'practice': return 'gradient-icon-blue';
+      case 'workout': return 'gradient-icon-purple';
+      case 'nutrition': return 'gradient-icon-green';
+    }
+  };
+
+  const getBadgeClass = (type: PracticeNote['type']) => {
+    switch (type) {
+      case 'practice': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      case 'workout': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      case 'nutrition': return 'bg-green-500/20 text-green-300 border-green-500/30';
+    }
+  };
+
   return (
-    <Card>
+    <Card className="gradient-card-blue border-blue-500/20">
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="bg-primary/10 p-2 rounded-lg">
+              <div className={`${getGradientClass(note.type)} p-2 rounded-lg`}>
                 {getIcon(note.type)}
               </div>
               <div>
-                <h3 className="font-semibold">{note.title}</h3>
+                <h3 className="font-semibold text-white">{note.title}</h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline">{getTypeLabel(note.type)}</Badge>
-                  <span className="text-sm text-muted-foreground">
+                  <Badge className={getBadgeClass(note.type)}>{getTypeLabel(note.type)}</Badge>
+                  <span className="text-sm text-gray-400">
                     {new Date(note.date).toLocaleDateString()}
                   </span>
                 </div>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-3">{note.content}</p>
+            <p className="text-sm text-gray-300 whitespace-pre-wrap mt-3">{note.content}</p>
             {note.tags && note.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {note.tags.map((tag, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
+                  <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-400">
                     {tag}
                   </Badge>
                 ))}
@@ -226,11 +241,11 @@ const NoteCard = ({
             )}
           </div>
           <div className="flex gap-2 ml-4">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(note)}>
-              <Edit className="w-4 h-4" />
+            <Button variant="ghost" size="icon" onClick={() => onEdit(note)} className="hover:bg-white/10">
+              <Edit className="w-4 h-4 text-gray-400" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => onDelete(note)}>
-              <Trash2 className="w-4 h-4 text-destructive" />
+            <Button variant="ghost" size="icon" onClick={() => onDelete(note)} className="hover:bg-white/10">
+              <Trash2 className="w-4 h-4 text-red-400" />
             </Button>
           </div>
         </div>

@@ -27,77 +27,70 @@ const Profile = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Player Profile</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-2 text-white">Player Profile</h1>
+          <p className="text-gray-400">
             Your athlete information and goals
           </p>
         </div>
         <div className="flex gap-2">
           <ProfileEditDialog />
-          <Button 
-            variant="destructive" 
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Account
-          </Button>
         </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 gradient-card-blue border-blue-500/20">
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Your player details</CardDescription>
+            <CardTitle className="text-white">Basic Information</CardTitle>
+            <CardDescription className="text-gray-400">Your player details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Full Name</p>
-                <p className="font-semibold">{profile.name}</p>
+                <p className="text-sm text-gray-400 mb-1">Full Name</p>
+                <p className="font-semibold text-white">{profile.name}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Email</p>
-                <p className="font-semibold">{user?.email}</p>
+                <p className="text-sm text-gray-400 mb-1">Email</p>
+                <p className="font-semibold text-white">{user?.email}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Team</p>
-                <p className="font-semibold">{profile.team}</p>
+                <p className="text-sm text-gray-400 mb-1">Team</p>
+                <p className="font-semibold text-white">{profile.team}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Position</p>
-                <p className="font-semibold">{profile.position}</p>
+                <p className="text-sm text-gray-400 mb-1">Position</p>
+                <p className="font-semibold text-white">{profile.position}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Sport</p>
-                <Badge variant="secondary">{profile.sport}</Badge>
+                <p className="text-sm text-gray-400 mb-1">Sport</p>
+                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">{profile.sport}</Badge>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Age Group</p>
-                <Badge variant="secondary">{profile.ageGroup} years</Badge>
+                <p className="text-sm text-gray-400 mb-1">Age Group</p>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">{profile.ageGroup} years</Badge>
               </div>
             </div>
 
             {(profile.height || profile.weight || profile.wingspan) && (
-              <div className="pt-4 border-t">
-                <p className="text-sm font-semibold mb-3">Physical Attributes</p>
+              <div className="pt-4 border-t border-white/10">
+                <p className="text-sm font-semibold mb-3 text-white">Physical Attributes</p>
                 <div className="grid grid-cols-3 gap-4">
                   {profile.height && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Height</p>
-                      <p className="font-semibold">{profile.height}</p>
+                      <p className="text-sm text-gray-400 mb-1">Height</p>
+                      <p className="font-semibold text-white">{profile.height}</p>
                     </div>
                   )}
                   {profile.weight && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Weight</p>
-                      <p className="font-semibold">{profile.weight}</p>
+                      <p className="text-sm text-gray-400 mb-1">Weight</p>
+                      <p className="font-semibold text-white">{profile.weight}</p>
                     </div>
                   )}
                   {profile.wingspan && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Wingspan</p>
-                      <p className="font-semibold">{profile.wingspan}</p>
+                      <p className="text-sm text-gray-400 mb-1">Wingspan</p>
+                      <p className="font-semibold text-white">{profile.wingspan}</p>
                     </div>
                   )}
                 </div>
@@ -105,64 +98,64 @@ const Profile = () => {
             )}
 
             {profile.bio && (
-              <div className="pt-4 border-t">
-                <p className="text-sm font-semibold mb-2">Bio</p>
-                <p className="text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
+              <div className="pt-4 border-t border-white/10">
+                <p className="text-sm font-semibold mb-2 text-white">Bio</p>
+                <p className="text-gray-400 whitespace-pre-wrap">{profile.bio}</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gradient-card-purple border-purple-500/20">
           <CardHeader>
-            <CardTitle>Quick Stats</CardTitle>
-            <CardDescription>Your progress at a glance</CardDescription>
+            <CardTitle className="text-white">Quick Stats</CardTitle>
+            <CardDescription className="text-gray-400">Your progress at a glance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-primary" />
+              <div className="gradient-icon-blue p-2 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Games Logged</p>
-                <p className="text-xl font-bold">0</p>
+                <p className="text-sm text-gray-400">Games Logged</p>
+                <p className="text-xl font-bold text-white">0</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <Target className="w-5 h-5 text-primary" />
+              <div className="gradient-icon-purple p-2 rounded-lg">
+                <Target className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Training Sessions</p>
-                <p className="text-xl font-bold">0</p>
+                <p className="text-sm text-gray-400">Training Sessions</p>
+                <p className="text-xl font-bold text-white">0</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="gradient-card-green border-green-500/20">
         <CardHeader>
-          <CardTitle>Your Goals</CardTitle>
-          <CardDescription>What you're working towards</CardDescription>
+          <CardTitle className="text-white">Your Goals</CardTitle>
+          <CardDescription className="text-gray-400">What you're working towards</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground whitespace-pre-wrap">{profile.goals}</p>
+          <p className="text-gray-300 whitespace-pre-wrap">{profile.goals}</p>
         </CardContent>
       </Card>
 
-      <Card className="border-destructive/50">
+      <Card className="gradient-card-orange border-red-500/20">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-red-400">Danger Zone</CardTitle>
+          <CardDescription className="text-gray-400">
             Irreversible actions that will permanently affect your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg">
+          <div className="flex items-center justify-between p-4 border border-red-500/30 rounded-lg bg-red-500/5">
             <div>
-              <p className="font-semibold">Delete Account</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-semibold text-white">Delete Account</p>
+              <p className="text-sm text-gray-400">
                 Permanently delete your account and all associated data
               </p>
             </div>
@@ -178,15 +171,15 @@ const Profile = () => {
       </Card>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Account?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">Delete Account?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
               This will permanently delete your account and all your data including profile, stats, goals, training sessions, and notes. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-muted text-white border-border">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete Account
             </AlertDialogAction>
