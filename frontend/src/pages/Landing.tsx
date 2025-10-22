@@ -50,7 +50,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-black">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
@@ -60,38 +60,38 @@ const Landing = () => {
               Elevate
             </h1>
           </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
             Making progress visible for every young athlete. Track your stats, visualize your growth, and level up your game.
           </p>
         </div>
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-5xl mx-auto">
-          <Card>
+          <Card className="gradient-card-blue border-blue-500/20">
             <CardHeader>
               <Target className="w-10 h-10 text-primary mb-2" />
-              <CardTitle>Track Everything</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Track Everything</CardTitle>
+              <CardDescription className="text-gray-400">
                 Log game stats, training drills, and skill metrics all in one place
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card>
+          <Card className="gradient-card-purple border-purple-500/20">
             <CardHeader>
               <BarChart3 className="w-10 h-10 text-primary mb-2" />
-              <CardTitle>See Your Progress</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">See Your Progress</CardTitle>
+              <CardDescription className="text-gray-400">
                 Visual charts and graphs show your improvement over time
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card>
+          <Card className="gradient-card-green border-green-500/20">
             <CardHeader>
               <Share2 className="w-10 h-10 text-primary mb-2" />
-              <CardTitle>Share with Coaches</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Share with Coaches</CardTitle>
+              <CardDescription className="text-gray-400">
                 Easy sharing with parents and coaches to support your development
               </CardDescription>
             </CardHeader>
@@ -107,17 +107,17 @@ const Landing = () => {
             </TabsList>
 
             <TabsContent value="login">
-              <Card>
+              <Card className="gradient-card-blue border-blue-500/20">
                 <CardHeader>
-                  <CardTitle>Welcome Back</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-white">Welcome Back</CardTitle>
+                  <CardDescription className="text-gray-400">
                     Login to continue tracking your progress
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-email">Email</Label>
+                      <Label htmlFor="login-email" className="text-gray-300">Email</Label>
                       <Input
                         id="login-email"
                         type="email"
@@ -125,16 +125,18 @@ const Landing = () => {
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         required
+                        className="bg-black/20 border-white/10 text-white placeholder:text-gray-500"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="login-password">Password</Label>
+                      <Label htmlFor="login-password" className="text-gray-300">Password</Label>
                       <Input
                         id="login-password"
                         type="password"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
+                        className="bg-black/20 border-white/10 text-white"
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
@@ -146,17 +148,17 @@ const Landing = () => {
             </TabsContent>
 
             <TabsContent value="register">
-              <Card>
+              <Card className="gradient-card-purple border-purple-500/20">
                 <CardHeader>
-                  <CardTitle>Create Account</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-white">Create Account</CardTitle>
+                  <CardDescription className="text-gray-400">
                     Start your journey to becoming a better athlete
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleRegister} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="register-email">Email</Label>
+                      <Label htmlFor="register-email" className="text-gray-300">Email</Label>
                       <Input
                         id="register-email"
                         type="email"
@@ -164,16 +166,18 @@ const Landing = () => {
                         value={registerEmail}
                         onChange={(e) => setRegisterEmail(e.target.value)}
                         required
+                        className="bg-black/20 border-white/10 text-white placeholder:text-gray-500"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="register-password">Password</Label>
+                      <Label htmlFor="register-password" className="text-gray-300">Password</Label>
                       <Input
                         id="register-password"
                         type="password"
                         value={registerPassword}
                         onChange={(e) => setRegisterPassword(e.target.value)}
                         required
+                        className="bg-black/20 border-white/10 text-white"
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
