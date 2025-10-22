@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { gameStatsStorage, trainingStorage } from '@/lib/storage';
-import { TrendingUp, Target, Award, Calendar, ArrowRight } from 'lucide-react';
+import { TrendingUp, Target, Award, Calendar, ArrowRight, Activity, Moon, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import type { GameStat, TrainingSession } from '@/types';
 
 const Dashboard = () => {
@@ -28,306 +27,305 @@ const Dashboard = () => {
     return (sum / games.length).toFixed(1);
   };
 
-  const getRecentGames = () => {
-    return games
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 3);
-  };
-
-  const getRecentSessions = () => {
-    return sessions
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 3);
-  };
-
   const getPersonalBest = () => {
     if (games.length === 0) return null;
     return games.reduce((max, game) => game.points > max.points ? game : max);
   };
 
-  const getPointsChartData = () => {
-    return games
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-10)
-      .map(game => ({
-        date: new Date(game.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        points: game.points,
-        assists: game.assists,
-        rebounds: game.rebounds,
-      }));
+  const getReadinessScore = () => {
+    if (games.length === 0) return 0;
+    const avgPoints = parseFloat(calculateAverage('points'));
+    return Math.min(Math.round((avgPoints / 20) * 100), 100);
   };
 
-  const getShootingChartData = () => {
-    return sessions
-      .filter(s => s.metrics.freeThrowPercentage || s.metrics.threePointPercentage)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-10)
-      .map(session => ({
-        date: new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        ft: session.metrics.freeThrowPercentage || 0,
-        threePoint: session.metrics.threePointPercentage || 0,
-      }));
+  const getActivityScore = () => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const recentActivities = [...games, ...sessions].filter(item => new Date(item.date) >= weekAgo);
+    return Math.min(recentActivities.length * 15, 100);
   };
 
   const personalBest = getPersonalBest();
-  const pointsData = getPointsChartData();
-  const shootingData = getShootingChartData();
+  const readinessScore = getReadinessScore();
+  const activityScore = getActivityScore();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {profile?.name}!</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-bold mb-2 text-white">Welcome back, {profile?.name}!</h1>
+        <p className="text-gray-400">
           {games.length === 0 && sessions.length === 0 
             ? "Let's start tracking your progress!"
-            : "Here's your progress overview. Keep up the great work!"}
+            : "Here's your progress overview"}
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Games Played</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{games.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {games.length === 0 ? 'Start logging your games!' : `PPG: ${calculateAverage('points')}`}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Training Sessions</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sessions.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {sessions.length === 0 ? 'Track your practice progress' : 'Sessions logged'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Personal Best</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{personalBest ? personalBest.points : '--'}</div>
-            <p className="text-xs text-muted-foreground">
-              {personalBest ? `vs ${personalBest.opponent}` : 'Log games to track'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Week</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {[...games, ...sessions].filter(item => {
-                const itemDate = new Date(item.date);
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                return itemDate >= weekAgo;
-              }).length}
+      {/* Circular Metrics */}
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="flex flex-col items-center min-w-[80px]">
+          <div className="relative w-20 h-20 mb-2">
+            <svg className="w-20 h-20 transform -rotate-90">
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="rgba(59, 130, 246, 0.2)"
+                strokeWidth="6"
+                fill="none"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="url(#gradient-blue)"
+                strokeWidth="6"
+                fill="none"
+                strokeDasharray={`${(readinessScore / 100) * 201} 201`}
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient id="gradient-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#60a5fa" />
+                  <stop offset="100%" stopColor="#3b82f6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xl font-bold text-white">{readinessScore}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Activities logged
+          </div>
+          <span className="text-xs text-gray-400">Performance</span>
+        </div>
+
+        <div className="flex flex-col items-center min-w-[80px]">
+          <div className="relative w-20 h-20 mb-2">
+            <svg className="w-20 h-20 transform -rotate-90">
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="rgba(139, 92, 246, 0.2)"
+                strokeWidth="6"
+                fill="none"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="url(#gradient-purple)"
+                strokeWidth="6"
+                fill="none"
+                strokeDasharray={`${(games.length > 0 ? 85 : 0) / 100 * 201} 201`}
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient id="gradient-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#a78bfa" />
+                  <stop offset="100%" stopColor="#8b5cf6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xl font-bold text-white">{games.length}</span>
+            </div>
+          </div>
+          <span className="text-xs text-gray-400">Games</span>
+        </div>
+
+        <div className="flex flex-col items-center min-w-[80px]">
+          <div className="relative w-20 h-20 mb-2">
+            <svg className="w-20 h-20 transform -rotate-90">
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="rgba(16, 185, 129, 0.2)"
+                strokeWidth="6"
+                fill="none"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="url(#gradient-green)"
+                strokeWidth="6"
+                fill="none"
+                strokeDasharray={`${activityScore / 100 * 201} 201`}
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient id="gradient-green" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#34d399" />
+                  <stop offset="100%" stopColor="#10b981" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xl font-bold text-white">{activityScore}</span>
+            </div>
+          </div>
+          <span className="text-xs text-gray-400">Activity</span>
+        </div>
+
+        <div className="flex flex-col items-center min-w-[80px]">
+          <div className="relative w-20 h-20 mb-2">
+            <svg className="w-20 h-20 transform -rotate-90">
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="rgba(251, 146, 60, 0.2)"
+                strokeWidth="6"
+                fill="none"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                stroke="url(#gradient-orange)"
+                strokeWidth="6"
+                fill="none"
+                strokeDasharray={`${(sessions.length > 0 ? 75 : 0) / 100 * 201} 201`}
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient id="gradient-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#fbbf24" />
+                  <stop offset="100%" stopColor="#f59e0b" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xl font-bold text-white">{sessions.length}</span>
+            </div>
+          </div>
+          <span className="text-xs text-gray-400">Training</span>
+        </div>
+      </div>
+
+      {/* Spotlight Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4 text-white">Spotlight</h2>
+        
+        {/* Performance Card */}
+        <Card className="gradient-card-blue border-blue-500/20 mb-4 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="gradient-icon-blue p-3 rounded-2xl">
+                <Activity className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xs text-gray-400 uppercase tracking-wider">Performance</span>
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-5xl font-bold text-white">{readinessScore}</span>
+                <span className="text-lg text-blue-400">
+                  {readinessScore >= 80 ? 'Optimal' : readinessScore >= 60 ? 'Good' : 'Fair'}
+                </span>
+              </div>
+            </div>
+
+            <h3 className="text-lg font-semibold text-white mb-2">Keep it up!</h3>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              {games.length > 0 
+                ? `You're averaging ${calculateAverage('points')} points per game. Your consistency is paying off!`
+                : "Start logging your games to track your performance and see your progress over time."}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Training Card */}
+        <Card className="gradient-card-purple border-purple-500/20 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="gradient-icon-purple p-3 rounded-2xl">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xs text-gray-400 uppercase tracking-wider">Training</span>
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-5xl font-bold text-white">{sessions.length}</span>
+                <span className="text-lg text-purple-400">Sessions</span>
+              </div>
+            </div>
+
+            <h3 className="text-lg font-semibold text-white mb-2">Build your foundation</h3>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              {sessions.length > 0
+                ? "Your dedication to training is building the skills you need to excel in games."
+                : "Log your training sessions to track skill development and see improvement over time."}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
-      {pointsData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Points Trend</CardTitle>
-            <CardDescription>Your scoring performance over recent games</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={pointsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="points" stroke="hsl(var(--primary))" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {shootingData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Shooting Progress</CardTitle>
-            <CardDescription>Free throw and 3-point shooting percentages</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={shootingData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="ft" fill="hsl(var(--primary))" name="Free Throw %" />
-                <Bar dataKey="threePoint" fill="hsl(var(--secondary))" name="3-Point %" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {games.length === 0 && sessions.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Get Started</CardTitle>
-            <CardDescription>
-              Start tracking your performance to see your progress visualized here
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Link to="/stats/games">
-                <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
-                  <div className="bg-primary/10 p-2 rounded-lg">
-                    <Calendar className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Log Your First Game</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Record your game stats to start tracking your performance over time
-                    </p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-              </Link>
-
-              <Link to="/stats/training">
-                <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
-                  <div className="bg-primary/10 p-2 rounded-lg">
-                    <Target className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Track Training Sessions</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Log your practice drills and see improvement in your skills
-                    </p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid md:grid-cols-2 gap-6">
-          {games.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Recent Games</CardTitle>
-                  <Link to="/stats/games">
-                    <Button variant="ghost" size="sm">
-                      View All
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {getRecentGames().map((game) => (
-                    <div key={game.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-semibold">vs {game.opponent}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(game.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold">{game.points}</p>
-                        <p className="text-xs text-muted-foreground">points</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      {/* Stats Overview */}
+      {games.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-white">Season Averages</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="gradient-card-blue border-blue-500/20">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-white mb-1">{calculateAverage('points')}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wider">PPG</div>
               </CardContent>
             </Card>
-          )}
-
-          {sessions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Recent Training</CardTitle>
-                  <Link to="/stats/training">
-                    <Button variant="ghost" size="sm">
-                      View All
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {getRecentSessions().map((session) => (
-                    <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-semibold">{session.drillType}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(session.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {session.metrics.freeThrowPercentage && (
-                          <p className="text-sm">FT: {session.metrics.freeThrowPercentage}%</p>
-                        )}
-                        {session.metrics.threePointPercentage && (
-                          <p className="text-sm">3PT: {session.metrics.threePointPercentage}%</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <Card className="gradient-card-purple border-purple-500/20">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-white mb-1">{calculateAverage('assists')}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wider">APG</div>
               </CardContent>
             </Card>
-          )}
+            <Card className="gradient-card-green border-green-500/20">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-white mb-1">{calculateAverage('rebounds')}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wider">RPG</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
-      {games.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Season Averages</CardTitle>
-            <CardDescription>Your performance across all games</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold">{calculateAverage('points')}</p>
-                <p className="text-sm text-muted-foreground">PPG</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{calculateAverage('assists')}</p>
-                <p className="text-sm text-muted-foreground">APG</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{calculateAverage('rebounds')}</p>
-                <p className="text-sm text-muted-foreground">RPG</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Quick Actions */}
+      {games.length === 0 && sessions.length === 0 && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-white">Get Started</h2>
+          <div className="space-y-3">
+            <Link to="/stats/games">
+              <Card className="gradient-card-blue border-blue-500/20 hover:border-blue-500/40 transition-all cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="gradient-icon-blue p-3 rounded-2xl">
+                    <Calendar className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white mb-1">Log Your First Game</h3>
+                    <p className="text-sm text-gray-400">Track your performance and see your stats</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/stats/training">
+              <Card className="gradient-card-purple border-purple-500/20 hover:border-purple-500/40 transition-all cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="gradient-icon-purple p-3 rounded-2xl">
+                    <Target className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white mb-1">Track Training</h3>
+                    <p className="text-sm text-gray-400">Log drills and monitor skill development</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
       )}
     </div>
   );
