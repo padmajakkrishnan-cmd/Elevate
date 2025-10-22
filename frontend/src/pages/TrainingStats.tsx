@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TrainingDialog } from '@/components/TrainingDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Target } from 'lucide-react';
 import { trainingStorage } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
 import type { TrainingSession } from '@/types';
@@ -57,12 +57,18 @@ const TrainingStats = () => {
     return metrics;
   };
 
+  const shootingSessions = sessions.filter(s => s.drillType === 'Shooting' || s.drillType === 'Mixed').length;
+  const skillsSessions = sessions.filter(s => s.drillType === 'Skills' || s.drillType === 'Mixed').length;
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const thisWeek = sessions.filter(s => new Date(s.date) >= weekAgo).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Training Sessions</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-2 text-white">Training Sessions</h1>
+          <p className="text-gray-400">
             Log your practice drills and track skill improvement
           </p>
         </div>
@@ -70,95 +76,89 @@ const TrainingStats = () => {
       </div>
 
       {sessions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Training Summary</CardTitle>
-            <CardDescription>
-              {sessions.length} {sessions.length === 1 ? 'session' : 'sessions'} logged
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="text-center p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Shooting Sessions</p>
-                <p className="text-2xl font-bold">
-                  {sessions.filter(s => s.drillType === 'Shooting' || s.drillType === 'Mixed').length}
-                </p>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="gradient-card-blue border-blue-500/20">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white mb-2">{shootingSessions}</div>
+                <div className="text-sm text-gray-400 uppercase tracking-wider">Shooting Sessions</div>
               </div>
-              <div className="text-center p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Skills Sessions</p>
-                <p className="text-2xl font-bold">
-                  {sessions.filter(s => s.drillType === 'Skills' || s.drillType === 'Mixed').length}
-                </p>
+            </CardContent>
+          </Card>
+          <Card className="gradient-card-purple border-purple-500/20">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white mb-2">{skillsSessions}</div>
+                <div className="text-sm text-gray-400 uppercase tracking-wider">Skills Sessions</div>
               </div>
-              <div className="text-center p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">This Week</p>
-                <p className="text-2xl font-bold">
-                  {sessions.filter(s => {
-                    const sessionDate = new Date(s.date);
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    return sessionDate >= weekAgo;
-                  }).length}
-                </p>
+            </CardContent>
+          </Card>
+          <Card className="gradient-card-green border-green-500/20">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white mb-2">{thisWeek}</div>
+                <div className="text-sm text-gray-400 uppercase tracking-wider">This Week</div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {sessions.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Training Sessions Logged</CardTitle>
-            <CardDescription>
-              Start tracking your practice sessions to monitor skill development
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Record shooting drills, speed work, agility training, and other skill metrics to see your improvement over time.
+        <Card className="gradient-card-purple border-purple-500/20">
+          <CardContent className="p-8 text-center">
+            <div className="gradient-icon-purple p-4 rounded-2xl w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <Target className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">No Training Sessions Logged</h3>
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              Start tracking your practice sessions to monitor skill development and see improvement over time.
             </p>
             <TrainingDialog onClose={loadSessions} />
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="gradient-card-purple border-purple-500/20">
           <CardHeader>
-            <CardTitle>Session History</CardTitle>
+            <CardTitle className="text-white">Session History</CardTitle>
+            <CardDescription className="text-gray-400">
+              {sessions.length} {sessions.length === 1 ? 'session' : 'sessions'} logged
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {sessions.map((session) => {
                 const metrics = getMetricDisplay(session);
                 return (
-                  <div key={session.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                  <div key={session.id} className="flex items-start justify-between p-4 bg-black/20 border border-white/5 rounded-xl hover:border-white/10 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Badge>{session.drillType}</Badge>
-                        <span className="text-sm text-muted-foreground">
+                        <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                          {session.drillType}
+                        </Badge>
+                        <span className="text-sm text-gray-400">
                           {new Date(session.date).toLocaleDateString()}
                         </span>
                       </div>
                       {metrics.length > 0 && (
-                        <div className="flex flex-wrap gap-2 text-sm mb-2">
+                        <div className="flex flex-wrap gap-3 text-sm mb-2">
                           {metrics.map((metric, idx) => (
-                            <span key={idx} className="text-muted-foreground">
+                            <span key={idx} className="text-gray-300">
                               {metric}
                             </span>
                           ))}
                         </div>
                       )}
                       {session.notes && (
-                        <p className="text-sm text-muted-foreground italic">{session.notes}</p>
+                        <p className="text-sm text-gray-400 italic mt-2">{session.notes}</p>
                       )}
                     </div>
                     <div className="flex gap-2 ml-4">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(session)}>
-                        <Edit className="w-4 h-4" />
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(session)} className="hover:bg-white/10">
+                        <Edit className="w-4 h-4 text-gray-400" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteSession(session)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteSession(session)} className="hover:bg-white/10">
+                        <Trash2 className="w-4 h-4 text-red-400" />
                       </Button>
                     </div>
                   </div>
@@ -174,15 +174,15 @@ const TrainingStats = () => {
       )}
 
       <AlertDialog open={!!deleteSession} onOpenChange={() => setDeleteSession(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Training Session?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">Delete Training Session?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
               Are you sure you want to delete this training session? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-muted text-white border-border">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
