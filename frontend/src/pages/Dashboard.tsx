@@ -48,6 +48,7 @@ const Dashboard = () => {
   const personalBest = getPersonalBest();
   const readinessScore = getReadinessScore();
   const activityScore = getActivityScore();
+  const hasNoData = games.length === 0 && sessions.length === 0;
 
   return (
     <div className="space-y-6 pb-8">
@@ -55,7 +56,7 @@ const Dashboard = () => {
       <div>
         <h1 className="text-3xl font-bold mb-2 text-white">Welcome back, {profile?.name}!</h1>
         <p className="text-gray-400">
-          {games.length === 0 && sessions.length === 0 
+          {hasNoData
             ? "Let's start tracking your progress!"
             : "Here's your progress overview"}
         </p>
@@ -204,6 +205,44 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Quick Actions - Show above Spotlight when no data */}
+      {hasNoData && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-white">Get Started</h2>
+          <div className="space-y-3">
+            <Link to="/stats/games">
+              <Card className="gradient-card-blue border-blue-500/20 hover:border-blue-500/40 transition-all cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="gradient-icon-blue p-3 rounded-2xl">
+                    <Calendar className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white mb-1">Log Your First Game</h3>
+                    <p className="text-sm text-gray-400">Track your performance and see your stats</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/stats/training">
+              <Card className="gradient-card-purple border-purple-500/20 hover:border-purple-500/40 transition-all cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="gradient-icon-purple p-3 rounded-2xl">
+                    <Target className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white mb-1">Track Training</h3>
+                    <p className="text-sm text-gray-400">Log drills and monitor skill development</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Spotlight Section */}
       <div>
         <h2 className="text-xl font-semibold mb-4 text-white">Spotlight</h2>
@@ -286,44 +325,6 @@ const Dashboard = () => {
                 <div className="text-xs text-gray-400 uppercase tracking-wider">RPG</div>
               </CardContent>
             </Card>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      {games.length === 0 && sessions.length === 0 && (
-        <div>
-          <h2 className="text-xl font-semibold mb-4 text-white">Get Started</h2>
-          <div className="space-y-3">
-            <Link to="/stats/games">
-              <Card className="gradient-card-blue border-blue-500/20 hover:border-blue-500/40 transition-all cursor-pointer">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="gradient-icon-blue p-3 rounded-2xl">
-                    <Calendar className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-white mb-1">Log Your First Game</h3>
-                    <p className="text-sm text-gray-400">Track your performance and see your stats</p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400" />
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/stats/training">
-              <Card className="gradient-card-purple border-purple-500/20 hover:border-purple-500/40 transition-all cursor-pointer">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="gradient-icon-purple p-3 rounded-2xl">
-                    <Target className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-white mb-1">Track Training</h3>
-                    <p className="text-sm text-gray-400">Log drills and monitor skill development</p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400" />
-                </CardContent>
-              </Card>
-            </Link>
           </div>
         </div>
       )}
