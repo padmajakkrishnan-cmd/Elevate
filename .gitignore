@@ -73,3 +73,7 @@ htmlcov/
 *.tmp
 *.temp
 .cache/
+
+# Firebase Setup Documentation
+FIREBASE_AUTH_TEST.md
+FIREBASE_SERVICE_ACCOUNT_SETUP.md

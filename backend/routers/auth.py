@@ -6,8 +6,7 @@ from backend.security import hash_password, create_access_token, verify_password
 from backend.dependencies.auth import get_current_user
 from backend.config import settings
 from datetime import datetime
-from google.auth.transport import requests
-from google.oauth2 import id_token
+from backend.firebase_config import verify_firebase_token
 
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 
@@ -240,21 +239,17 @@ async def google_auth(request: GoogleAuthRequest):
         HTTPException 500: If there's an error during authentication
     """
     try:
-        # Verify the Google token
-        idinfo = id_token.verify_oauth2_token(
-            request.credential,
-            requests.Request(),
-            settings.google_client_id
-        )
+        # Verify the Firebase ID token
+        decoded_token = verify_firebase_token(request.credential)
         
         # Extract user information
-        email = idinfo.get('email')
-        google_id = idinfo.get('sub')
+        email = decoded_token.get('email')
+        user_id = decoded_token.get('uid')
         
-        if not email or not google_id:
+        if not email or not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid Google token"
+                detail="Invalid Firebase token"
             )
         
         users_collection = get_users_collection()
@@ -263,7 +258,7 @@ async def google_auth(request: GoogleAuthRequest):
         user = await users_collection.find_one({
             "$or": [
                 {"email": email},
-                {"oauth_id": google_id, "oauth_provider": "google"}
+                {"oauth_id": user_id, "oauth_provider": "google"}
             ]
         })
         
@@ -278,7 +273,7 @@ async def google_auth(request: GoogleAuthRequest):
                     {
                         "$set": {
                             "oauth_provider": "google",
-                            "oauth_id": google_id,
+                            "oauth_id": user_id,
                             "updated_at": now
                         }
                     }
@@ -290,7 +285,7 @@ async def google_auth(request: GoogleAuthRequest):
             user_data = {
                 "email": email,
                 "oauth_provider": "google",
-                "oauth_id": google_id,
+                "oauth_id": user_id,
                 "password_hash": None,
                 "created_at": now,
                 "updated_at": now
@@ -313,7 +308,7 @@ async def google_auth(request: GoogleAuthRequest):
         # Invalid token
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid Google token: {str(e)}"
+            detail=f"Invalid Firebase token: {str(e)}"
         )
     except Exception as e:
         # Other errors

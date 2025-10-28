@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User, PlayerProfile } from '@/types';
 import { authApi, profileApi } from '@/lib/api';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/config/firebase';
 
 interface AuthContextType {
   user: User | null;
   profile: PlayerProfile | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
-  googleLogin: (credential: string) => Promise<{ isNewUser: boolean }>;
+  googleLogin: () => Promise<{ isNewUser: boolean }>;
   logout: () => void;
   updateProfile: (profile: PlayerProfile) => void;
   isAuthenticated: boolean;
@@ -89,9 +91,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const googleLogin = async (credential: string) => {
+  const googleLogin = async () => {
     try {
-      const response = await authApi.googleAuth(credential);
+      // Sign in with Firebase
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      // Get Firebase ID token
+      const idToken = await result.user.getIdToken();
+      
+      // Send Firebase ID token to backend
+      const response = await authApi.googleAuth(idToken);
       localStorage.setItem('token', response.access_token);
       
       // Fetch user data

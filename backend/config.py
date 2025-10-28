@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_expires_in: int = 604800
     cors_origins: str = "http://localhost:5173"
-    google_client_id: str = ""
+    firebase_project_id: str = "elevate-a5140"
+    firebase_private_key: str = ""
+    firebase_client_email: str = ""
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash-exp"
 
