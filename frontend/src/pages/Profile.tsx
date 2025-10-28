@@ -6,17 +6,34 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProfileEditDialog } from '@/components/ProfileEditDialog';
-import { User, Mail, Target, TrendingUp, Trash2, Edit } from 'lucide-react';
-import { storage } from '@/lib/storage';
+import { TrendingUp, Target, Trash2 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
+import { useQuery } from '@tanstack/react-query';
+import { gameStatsApi, trainingSessionsApi } from '@/lib/api';
 
 const Profile = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, logout } = useAuth();
   const navigate = useNavigate();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  // Fetch game stats count
+  const { data: games = [] } = useQuery({
+    queryKey: ['gameStats'],
+    queryFn: gameStatsApi.getAll,
+    enabled: !!user,
+  });
+
+  // Fetch training sessions count
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['trainingSessions'],
+    queryFn: trainingSessionsApi.getAll,
+    enabled: !!user,
+  });
+
   const handleDeleteAccount = () => {
-    storage.clear();
+    // Clear token and logout
+    localStorage.removeItem('token');
+    logout();
     showSuccess('Account deleted successfully');
     navigate('/');
   };
@@ -67,30 +84,32 @@ const Profile = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-400 mb-1">Age Group</p>
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">{profile.ageGroup} years</Badge>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                  {profile.ageGroup ? `${profile.ageGroup} years` : 'Not set'}
+                </Badge>
               </div>
             </div>
 
-            {(profile.height || profile.weight || profile.wingspan) && (
+            {((profile.heightFeet && profile.heightInches !== undefined) || profile.weight || (profile.wingspanFeet && profile.wingspanInches !== undefined)) && (
               <div className="pt-4 border-t border-white/10">
                 <p className="text-sm font-semibold mb-3 text-white">Physical Attributes</p>
                 <div className="grid grid-cols-3 gap-4">
-                  {profile.height && (
+                  {(profile.heightFeet && profile.heightInches !== undefined) && (
                     <div>
                       <p className="text-sm text-gray-400 mb-1">Height</p>
-                      <p className="font-semibold text-white">{profile.height}</p>
+                      <p className="font-semibold text-white">{profile.heightFeet}'{profile.heightInches}"</p>
                     </div>
                   )}
                   {profile.weight && (
                     <div>
                       <p className="text-sm text-gray-400 mb-1">Weight</p>
-                      <p className="font-semibold text-white">{profile.weight}</p>
+                      <p className="font-semibold text-white">{profile.weight} lbs</p>
                     </div>
                   )}
-                  {profile.wingspan && (
+                  {(profile.wingspanFeet && profile.wingspanInches !== undefined) && (
                     <div>
                       <p className="text-sm text-gray-400 mb-1">Wingspan</p>
-                      <p className="font-semibold text-white">{profile.wingspan}</p>
+                      <p className="font-semibold text-white">{profile.wingspanFeet}'{profile.wingspanInches}"</p>
                     </div>
                   )}
                 </div>
@@ -118,7 +137,7 @@ const Profile = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Games Logged</p>
-                <p className="text-xl font-bold text-white">0</p>
+                <p className="text-xl font-bold text-white">{games.length}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -127,7 +146,7 @@ const Profile = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Training Sessions</p>
-                <p className="text-xl font-bold text-white">0</p>
+                <p className="text-xl font-bold text-white">{sessions.length}</p>
               </div>
             </div>
           </CardContent>

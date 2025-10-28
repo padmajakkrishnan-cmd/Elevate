@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,33 +6,47 @@ import { Progress } from '@/components/ui/progress';
 import { GoalDialog } from '@/components/GoalDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Edit, Trash2, Target, CheckCircle2, Clock } from 'lucide-react';
-import { goalsStorage } from '@/lib/storage';
+import { goalsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Goal } from '@/types';
 import { showSuccess } from '@/utils/toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Goals = () => {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const queryClient = useQueryClient();
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
   const [deleteGoal, setDeleteGoal] = useState<Goal | null>(null);
 
-  const loadGoals = () => {
-    const allGoals = goalsStorage.getAll();
-    const userGoals = allGoals.filter(g => g.userId === user?.id);
-    setGoals(userGoals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-  };
+  // Fetch goals
+  const { data: goals = [], isLoading } = useQuery({
+    queryKey: ['goals'],
+    queryFn: goalsApi.getAll,
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    loadGoals();
-  }, [user]);
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: goalsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      showSuccess('Goal deleted');
+      setDeleteGoal(null);
+    },
+  });
+
+  // Update mutation for marking complete
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => goalsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      showSuccess('Goal marked as completed! 🎉');
+    },
+  });
 
   const handleDelete = () => {
     if (deleteGoal) {
-      goalsStorage.delete(deleteGoal.id);
-      showSuccess('Goal deleted');
-      loadGoals();
-      setDeleteGoal(null);
+      deleteMutation.mutate(deleteGoal.id);
     }
   };
 
@@ -42,13 +56,10 @@ const Goals = () => {
 
   const handleCloseDialog = () => {
     setEditingGoal(undefined);
-    loadGoals();
   };
 
   const handleMarkComplete = (goal: Goal) => {
-    goalsStorage.update(goal.id, { status: 'completed' });
-    showSuccess('Goal marked as completed! 🎉');
-    loadGoals();
+    updateMutation.mutate({ id: goal.id, data: { status: 'completed' } });
   };
 
   const getProgressPercentage = (goal: Goal) => {
@@ -64,8 +75,17 @@ const Goals = () => {
     }
   };
 
+  const sortedGoals = [...goals].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const activeGoals = goals.filter(g => g.status === 'active');
   const completedGoals = goals.filter(g => g.status === 'completed');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -76,7 +96,7 @@ const Goals = () => {
             Set and track your performance goals
           </p>
         </div>
-        <GoalDialog onClose={loadGoals} />
+        <GoalDialog />
       </div>
 
       {goals.length > 0 && (
@@ -114,7 +134,7 @@ const Goals = () => {
             <p className="text-gray-400 mb-6 max-w-md mx-auto">
               Set your first goal to start tracking your progress. Goals help you stay focused and motivated.
             </p>
-            <GoalDialog onClose={loadGoals} />
+            <GoalDialog />
           </CardContent>
         </Card>
       ) : (

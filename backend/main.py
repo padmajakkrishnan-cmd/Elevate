@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from backend.database import connect_to_mongo, close_mongo_connection, ping_database
 from backend.config import settings
+from backend.routers import auth, profile, game_stats, training_sessions, goals, insights, share, ai_insights
 
 
 @asynccontextmanager
@@ -17,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Configure CORS
+# Configure CORS - must be added before routes
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -25,6 +26,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(auth.router)
+app.include_router(profile.router)
+app.include_router(game_stats.router)
+app.include_router(training_sessions.router)
+app.include_router(goals.router)
+app.include_router(insights.router)
+app.include_router(share.router)
+app.include_router(ai_insights.router)
 
 
 @app.get("/healthz")

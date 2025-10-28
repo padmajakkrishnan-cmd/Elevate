@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User, PlayerProfile } from '@/types';
-import { userStorage, profileStorage } from '@/lib/storage';
+import { authApi, profileApi } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
   profile: PlayerProfile | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  googleLogin: (credential: string) => Promise<{ isNewUser: boolean }>;
   logout: () => void;
   updateProfile: (profile: PlayerProfile) => void;
   isAuthenticated: boolean;
   hasProfile: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,56 +20,109 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load user and profile from localStorage on mount
-    const storedUser = userStorage.get();
-    const storedProfile = profileStorage.get();
-    
-    if (storedUser) {
-      setUser(storedUser);
-    }
-    if (storedProfile) {
-      setProfile(storedProfile);
-    }
+    // Check if user is authenticated on mount
+    const initAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          // Verify token and fetch user data
+          const userData = await authApi.me();
+          setUser(userData);
+          
+          // Fetch user profile
+          try {
+            const profileData = await profileApi.get();
+            setProfile(profileData);
+          } catch (error) {
+            // Profile might not exist yet, which is fine
+            console.log('No profile found');
+          }
+        } catch (error) {
+          // Token is invalid or expired
+          console.error('Auth initialization failed:', error);
+          localStorage.removeItem('token');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock login - in real app, this would call an API
-    // For demo, we'll just check if user exists in localStorage
-    const storedUser = userStorage.get();
-    
-    if (storedUser && storedUser.email === email) {
-      setUser(storedUser);
-      const storedProfile = profileStorage.get();
-      if (storedProfile) {
-        setProfile(storedProfile);
+    try {
+      const response = await authApi.login(email, password);
+      localStorage.setItem('token', response.access_token);
+      
+      // Fetch user data
+      const userData = await authApi.me();
+      setUser(userData);
+      
+      // Fetch user profile
+      try {
+        const profileData = await profileApi.get();
+        setProfile(profileData);
+      } catch (error) {
+        // Profile might not exist yet
+        console.log('No profile found');
       }
-    } else {
+    } catch (error) {
+      console.error('Login failed:', error);
       throw new Error('Invalid credentials');
     }
   };
 
   const register = async (email: string, password: string) => {
-    // Mock registration - create new user
-    const newUser: User = {
-      id: crypto.randomUUID(),
-      email,
-      createdAt: new Date().toISOString(),
-    };
-    
-    userStorage.set(newUser);
-    setUser(newUser);
+    try {
+      const response = await authApi.signup(email, password);
+      localStorage.setItem('token', response.access_token);
+      
+      // Fetch user data
+      const userData = await authApi.me();
+      setUser(userData);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw new Error('Registration failed');
+    }
+  };
+
+  const googleLogin = async (credential: string) => {
+    try {
+      const response = await authApi.googleAuth(credential);
+      localStorage.setItem('token', response.access_token);
+      
+      // Fetch user data
+      const userData = await authApi.me();
+      setUser(userData);
+      
+      // Try to fetch user profile
+      if (!response.is_new_user) {
+        try {
+          const profileData = await profileApi.get();
+          setProfile(profileData);
+        } catch (error) {
+          // Profile might not exist yet
+          console.log('No profile found');
+        }
+      }
+      
+      return { isNewUser: response.is_new_user };
+    } catch (error) {
+      console.error('Google login failed:', error);
+      throw new Error('Google authentication failed');
+    }
   };
 
   const logout = () => {
     setUser(null);
     setProfile(null);
-    // Note: We don't clear localStorage on logout so data persists
+    localStorage.removeItem('token');
   };
 
   const updateProfile = (updatedProfile: PlayerProfile) => {
-    profileStorage.set(updatedProfile);
     setProfile(updatedProfile);
   };
 
@@ -78,10 +133,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile,
         login,
         register,
+        googleLogin,
         logout,
         updateProfile,
         isAuthenticated: !!user,
         hasProfile: !!profile,
+        isLoading,
       }}
     >
       {children}

@@ -1,56 +1,22 @@
-import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Calendar, Target, Award, User } from 'lucide-react';
-import { shareLinksStorage, profileStorage, gameStatsStorage, trainingStorage, goalsStorage } from '@/lib/storage';
-import type { ShareLink, PlayerProfile, GameStat, TrainingSession, Goal } from '@/types';
+import { shareApi } from '@/lib/api';
+import type { PlayerProfile, GameStat, TrainingSession, Goal } from '@/types';
+import { useQuery } from '@tanstack/react-query';
 
 const SharedReport = () => {
   const { token } = useParams<{ token: string }>();
-  const [shareLink, setShareLink] = useState<ShareLink | null>(null);
-  const [profile, setProfile] = useState<PlayerProfile | null>(null);
-  const [games, setGames] = useState<GameStat[]>([]);
-  const [sessions, setSessions] = useState<TrainingSession[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!token) return;
+  // Fetch shared report data
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['sharedReport', token],
+    queryFn: () => shareApi.getByToken(token!),
+    enabled: !!token,
+  });
 
-    // Find share link
-    const link = shareLinksStorage.getByToken(token);
-    if (!link) {
-      setLoading(false);
-      return;
-    }
-
-    // Update view count
-    shareLinksStorage.update(link.id, {
-      viewCount: link.viewCount + 1,
-      lastViewed: new Date().toISOString(),
-    });
-
-    setShareLink(link);
-
-    // Load player data
-    const playerProfile = profileStorage.get();
-    if (playerProfile && playerProfile.userId === link.userId) {
-      setProfile(playerProfile);
-
-      const playerGames = gameStatsStorage.getAll().filter(g => g.userId === link.userId);
-      const playerSessions = trainingStorage.getAll().filter(s => s.userId === link.userId);
-      const playerGoals = goalsStorage.getAll().filter(g => g.userId === link.userId);
-
-      setGames(playerGames);
-      setSessions(playerSessions);
-      setGoals(playerGoals);
-    }
-
-    setLoading(false);
-  }, [token]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -61,7 +27,7 @@ const SharedReport = () => {
     );
   }
 
-  if (!shareLink || !profile) {
+  if (error || !data) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <Card className="max-w-md">
@@ -76,8 +42,10 @@ const SharedReport = () => {
     );
   }
 
+  const { profile, gameStats: games, trainingSessions: sessions, goals } = data;
+
   const calculateAverage = (stat: keyof Pick<GameStat, 'points' | 'assists' | 'rebounds'>) => {
-    if (games.length === 0) return 0;
+    if (games.length === 0) return '0';
     const sum = games.reduce((acc, game) => acc + game[stat], 0);
     return (sum / games.length).toFixed(1);
   };
@@ -119,29 +87,29 @@ const SharedReport = () => {
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-3 gap-4">
-              {profile.height && (
+              {(profile.heightFeet && profile.heightInches !== undefined) && (
                 <div>
                   <p className="text-sm text-muted-foreground">Height</p>
-                  <p className="font-semibold">{profile.height}</p>
+                  <p className="font-semibold">{profile.heightFeet}'{profile.heightInches}"</p>
                 </div>
               )}
               {profile.weight && (
                 <div>
                   <p className="text-sm text-muted-foreground">Weight</p>
-                  <p className="font-semibold">{profile.weight}</p>
+                  <p className="font-semibold">{profile.weight} lbs</p>
                 </div>
               )}
-              {profile.wingspan && (
+              {(profile.wingspanFeet && profile.wingspanInches !== undefined) && (
                 <div>
                   <p className="text-sm text-muted-foreground">Wingspan</p>
-                  <p className="font-semibold">{profile.wingspan}</p>
+                  <p className="font-semibold">{profile.wingspanFeet}'{profile.wingspanInches}"</p>
                 </div>
               )}
             </div>
-            {profile.goals && (
+            {profile.bio && (
               <div className="mt-4 pt-4 border-t">
-                <p className="text-sm font-semibold mb-2">Goals</p>
-                <p className="text-muted-foreground">{profile.goals}</p>
+                <p className="text-sm font-semibold mb-2">Bio</p>
+                <p className="text-muted-foreground">{profile.bio}</p>
               </div>
             )}
           </CardContent>

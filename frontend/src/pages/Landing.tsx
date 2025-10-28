@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { TrendingUp, Target, BarChart3, Share2 } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
+import { profileApi } from '@/lib/api';
 
 const Landing = () => {
   const [loginEmail, setLoginEmail] = useState('');
@@ -16,7 +19,7 @@ const Landing = () => {
   const [registerPassword, setRegisterPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, register, hasProfile } = useAuth();
+  const { login, register, googleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -26,7 +29,15 @@ const Landing = () => {
     try {
       await login(loginEmail, loginPassword);
       showSuccess('Welcome back!');
-      navigate(hasProfile ? '/dashboard' : '/profile/create');
+      
+      // Check if profile exists after login completes
+      try {
+        await profileApi.get();
+        navigate('/dashboard');
+      } catch (error) {
+        // No profile exists, redirect to create profile
+        navigate('/profile/create');
+      }
     } catch (error) {
       showError('Invalid credentials. Please try again.');
     } finally {
@@ -49,6 +60,39 @@ const Landing = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      showError('Google authentication failed');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { isNewUser } = await googleLogin(credentialResponse.credential);
+      showSuccess(isNewUser ? 'Account created! Let\'s set up your profile.' : 'Welcome back!');
+      
+      if (isNewUser) {
+        navigate('/profile/create');
+      } else {
+        // Check if profile exists
+        try {
+          await profileApi.get();
+          navigate('/dashboard');
+        } catch (error) {
+          navigate('/profile/create');
+        }
+      }
+    } catch (error) {
+      showError('Google authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    showError('Google authentication failed');
+  };
+
   return (
     <div className="min-h-screen bg-black">
       {/* Hero Section */}
@@ -69,8 +113,10 @@ const Landing = () => {
         <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-5xl mx-auto">
           <Card className="gradient-card-blue border-blue-500/20">
             <CardHeader>
-              <Target className="w-10 h-10 text-primary mb-2" />
-              <CardTitle className="text-white">Track Everything</CardTitle>
+              <div className="flex items-center gap-3 mb-2">
+                <Target className="w-10 h-10 text-primary" />
+                <CardTitle className="text-white">Track Everything</CardTitle>
+              </div>
               <CardDescription className="text-gray-400">
                 Log game stats, training drills, and skill metrics all in one place
               </CardDescription>
@@ -79,8 +125,10 @@ const Landing = () => {
 
           <Card className="gradient-card-purple border-purple-500/20">
             <CardHeader>
-              <BarChart3 className="w-10 h-10 text-primary mb-2" />
-              <CardTitle className="text-white">See Your Progress</CardTitle>
+              <div className="flex items-center gap-3 mb-2">
+                <BarChart3 className="w-10 h-10 text-primary" />
+                <CardTitle className="text-white">See Your Progress</CardTitle>
+              </div>
               <CardDescription className="text-gray-400">
                 Visual charts and graphs show your improvement over time
               </CardDescription>
@@ -89,8 +137,10 @@ const Landing = () => {
 
           <Card className="gradient-card-green border-green-500/20">
             <CardHeader>
-              <Share2 className="w-10 h-10 text-primary mb-2" />
-              <CardTitle className="text-white">Share with Coaches</CardTitle>
+              <div className="flex items-center gap-3 mb-2">
+                <Share2 className="w-10 h-10 text-primary" />
+                <CardTitle className="text-white">Share with Coaches</CardTitle>
+              </div>
               <CardDescription className="text-gray-400">
                 Easy sharing with parents and coaches to support your development
               </CardDescription>
@@ -142,6 +192,25 @@ const Landing = () => {
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
+                    
+                    <div className="relative my-4">
+                      <Separator className="bg-white/10" />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-black px-2 text-sm text-gray-400">
+                        or
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        useOneTap
+                        theme="filled_black"
+                        size="large"
+                        text="signin_with"
+                        shape="rectangular"
+                      />
+                    </div>
                   </form>
                 </CardContent>
               </Card>
@@ -183,6 +252,24 @@ const Landing = () => {
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? 'Creating account...' : 'Sign Up'}
                     </Button>
+                    
+                    <div className="relative my-4">
+                      <Separator className="bg-white/10" />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-black px-2 text-sm text-gray-400">
+                        or
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        theme="filled_black"
+                        size="large"
+                        text="signup_with"
+                        shape="rectangular"
+                      />
+                    </div>
                   </form>
                 </CardContent>
               </Card>

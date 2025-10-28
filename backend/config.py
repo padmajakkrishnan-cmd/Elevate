@@ -9,13 +9,16 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_expires_in: int = 604800
     cors_origins: str = "http://localhost:5173"
+    google_client_id: str = ""
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash-exp"
 
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]
 
     class Config:
-        env_file = ".env"
+        env_file = "backend/.env"
         case_sensitive = False
 
 

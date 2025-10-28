@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import type { TrainingSession } from '@/types';
-import { trainingStorage } from '@/lib/storage';
+import { trainingSessionsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { showSuccess } from '@/utils/toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface TrainingDialogProps {
   editSession?: TrainingSession;
@@ -19,6 +20,7 @@ interface TrainingDialogProps {
 
 export const TrainingDialog: React.FC<TrainingDialogProps> = ({ editSession, onClose, trigger }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     date: '',
@@ -53,38 +55,27 @@ export const TrainingDialog: React.FC<TrainingDialogProps> = ({ editSession, onC
     }
   }, [editSession]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    const sessionData: TrainingSession = {
-      id: editSession?.id || crypto.randomUUID(),
-      userId: user.id,
-      date: formData.date,
-      drillType: formData.drillType,
-      metrics: {
-        ...(formData.freeThrowPercentage && { freeThrowPercentage: Number(formData.freeThrowPercentage) }),
-        ...(formData.threePointPercentage && { threePointPercentage: Number(formData.threePointPercentage) }),
-        ...(formData.midRangePercentage && { midRangePercentage: Number(formData.midRangePercentage) }),
-        ...(formData.layupPercentage && { layupPercentage: Number(formData.layupPercentage) }),
-        ...(formData.speed && { speed: Number(formData.speed) }),
-        ...(formData.agility && { agility: Number(formData.agility) }),
-        ...(formData.vertical && { vertical: Number(formData.vertical) }),
-        ...(formData.reactionTime && { reactionTime: Number(formData.reactionTime) }),
-      },
-      notes: formData.notes,
-      createdAt: editSession?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (editSession) {
-      trainingStorage.update(editSession.id, sessionData);
-      showSuccess('Training session updated!');
-    } else {
-      trainingStorage.add(sessionData);
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: trainingSessionsApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trainingSessions'] });
       showSuccess('Training session logged!');
-    }
+      handleClose();
+    },
+  });
 
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => trainingSessionsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trainingSessions'] });
+      showSuccess('Training session updated!');
+      handleClose();
+    },
+  });
+
+  const handleClose = () => {
     setOpen(false);
     resetForm();
     onClose?.();
@@ -106,8 +97,52 @@ export const TrainingDialog: React.FC<TrainingDialogProps> = ({ editSession, onC
     });
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const sessionData = {
+      date: formData.date,
+      drillType: formData.drillType,
+      metrics: {
+        ...(formData.freeThrowPercentage && { freeThrowPercentage: Number(formData.freeThrowPercentage) }),
+        ...(formData.threePointPercentage && { threePointPercentage: Number(formData.threePointPercentage) }),
+        ...(formData.midRangePercentage && { midRangePercentage: Number(formData.midRangePercentage) }),
+        ...(formData.layupPercentage && { layupPercentage: Number(formData.layupPercentage) }),
+        ...(formData.speed && { speed: Number(formData.speed) }),
+        ...(formData.agility && { agility: Number(formData.agility) }),
+        ...(formData.vertical && { vertical: Number(formData.vertical) }),
+        ...(formData.reactionTime && { reactionTime: Number(formData.reactionTime) }),
+      },
+      notes: formData.notes || undefined,
+    };
+
+    if (editSession) {
+      updateMutation.mutate({ id: editSession.id, data: sessionData });
+    } else {
+      createMutation.mutate(sessionData);
+    }
+  };
+
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'drillType') {
+      // Clear metrics when drill type changes
+      setFormData(prev => ({
+        ...prev,
+        drillType: value,
+        // Clear all metrics
+        freeThrowPercentage: '',
+        threePointPercentage: '',
+        midRangePercentage: '',
+        layupPercentage: '',
+        speed: '',
+        agility: '',
+        vertical: '',
+        reactionTime: '',
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const isShootingDrill = formData.drillType === 'Shooting';
@@ -280,10 +315,10 @@ export const TrainingDialog: React.FC<TrainingDialogProps> = ({ editSession, onC
           </div>
 
           <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
               {editSession ? 'Update Session' : 'Log Session'}
             </Button>
           </div>

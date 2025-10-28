@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import type { Goal } from '@/types';
-import { goalsStorage } from '@/lib/storage';
+import { goalsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { showSuccess } from '@/utils/toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface GoalDialogProps {
   editGoal?: Goal;
@@ -19,6 +20,7 @@ interface GoalDialogProps {
 
 export const GoalDialog: React.FC<GoalDialogProps> = ({ editGoal, onClose, trigger }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     type: 'monthly' as 'weekly' | 'monthly' | 'seasonal',
@@ -47,35 +49,27 @@ export const GoalDialog: React.FC<GoalDialogProps> = ({ editGoal, onClose, trigg
     }
   }, [editGoal]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    const goalData: Goal = {
-      id: editGoal?.id || crypto.randomUUID(),
-      userId: user.id,
-      type: formData.type,
-      category: formData.category,
-      title: formData.title,
-      description: formData.description,
-      targetValue: formData.targetValue ? Number(formData.targetValue) : undefined,
-      currentValue: editGoal?.currentValue || 0,
-      metric: formData.metric || undefined,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      status: editGoal?.status || 'active',
-      createdAt: editGoal?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (editGoal) {
-      goalsStorage.update(editGoal.id, goalData);
-      showSuccess('Goal updated!');
-    } else {
-      goalsStorage.add(goalData);
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: goalsApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
       showSuccess('Goal created!');
-    }
+      handleClose();
+    },
+  });
 
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => goalsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      showSuccess('Goal updated!');
+      handleClose();
+    },
+  });
+
+  const handleClose = () => {
     setOpen(false);
     resetForm();
     onClose?.();
@@ -92,6 +86,30 @@ export const GoalDialog: React.FC<GoalDialogProps> = ({ editGoal, onClose, trigg
       startDate: '',
       endDate: '',
     });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const goalData = {
+      type: formData.type,
+      category: formData.category,
+      title: formData.title,
+      description: formData.description,
+      targetValue: formData.targetValue ? Number(formData.targetValue) : undefined,
+      currentValue: editGoal?.currentValue || 0,
+      metric: formData.metric || undefined,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      status: editGoal?.status || 'active',
+    };
+
+    if (editGoal) {
+      updateMutation.mutate({ id: editGoal.id, data: goalData });
+    } else {
+      createMutation.mutate(goalData);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -218,10 +236,10 @@ export const GoalDialog: React.FC<GoalDialogProps> = ({ editGoal, onClose, trigg
           </div>
 
           <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
               {editGoal ? 'Update Goal' : 'Create Goal'}
             </Button>
           </div>

@@ -1,28 +1,35 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
-import { gameStatsStorage, trainingStorage } from '@/lib/storage';
-import { TrendingUp, Target, Award, Calendar, ArrowRight, Activity, Moon, Flame } from 'lucide-react';
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { gameStatsApi, trainingSessionsApi, aiApi, type AIInsights } from '@/lib/api';
+import { TrendingUp, Target, Award, Calendar, ArrowRight, Activity, Sparkles, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { GameStat, TrainingSession } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { showError, showSuccess } from '@/utils/toast';
 
 const Dashboard = () => {
   const { profile, user } = useAuth();
-  const [games, setGames] = useState<GameStat[]>([]);
-  const [sessions, setSessions] = useState<TrainingSession[]>([]);
+  const [aiInsights, setAiInsights] = useState<AIInsights | null>(null);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      const userGames = gameStatsStorage.getAll().filter(g => g.userId === user.id);
-      const userSessions = trainingStorage.getAll().filter(s => s.userId === user.id);
-      setGames(userGames);
-      setSessions(userSessions);
-    }
-  }, [user]);
+  // Fetch game stats
+  const { data: games = [], isLoading: gamesLoading } = useQuery({
+    queryKey: ['gameStats'],
+    queryFn: gameStatsApi.getAll,
+    enabled: !!user,
+  });
+
+  // Fetch training sessions
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
+    queryKey: ['trainingSessions'],
+    queryFn: trainingSessionsApi.getAll,
+    enabled: !!user,
+  });
 
   const calculateAverage = (stat: keyof Pick<GameStat, 'points' | 'assists' | 'rebounds'>) => {
-    if (games.length === 0) return 0;
+    if (games.length === 0) return '0';
     const sum = games.reduce((acc, game) => acc + game[stat], 0);
     return (sum / games.length).toFixed(1);
   };
@@ -49,6 +56,15 @@ const Dashboard = () => {
   const readinessScore = getReadinessScore();
   const activityScore = getActivityScore();
   const hasNoData = games.length === 0 && sessions.length === 0;
+  const isLoading = gamesLoading || sessionsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-8">
@@ -60,149 +76,6 @@ const Dashboard = () => {
             ? "Let's start tracking your progress!"
             : "Here's your progress overview"}
         </p>
-      </div>
-
-      {/* Circular Metrics */}
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        <div className="flex flex-col items-center min-w-[80px]">
-          <div className="relative w-20 h-20 mb-2">
-            <svg className="w-20 h-20 transform -rotate-90">
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="rgba(59, 130, 246, 0.2)"
-                strokeWidth="6"
-                fill="none"
-              />
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="url(#gradient-blue)"
-                strokeWidth="6"
-                fill="none"
-                strokeDasharray={`${(readinessScore / 100) * 201} 201`}
-                strokeLinecap="round"
-              />
-              <defs>
-                <linearGradient id="gradient-blue" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#60a5fa" />
-                  <stop offset="100%" stopColor="#3b82f6" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xl font-bold text-white">{readinessScore}</span>
-            </div>
-          </div>
-          <span className="text-xs text-gray-400">Performance</span>
-        </div>
-
-        <div className="flex flex-col items-center min-w-[80px]">
-          <div className="relative w-20 h-20 mb-2">
-            <svg className="w-20 h-20 transform -rotate-90">
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="rgba(139, 92, 246, 0.2)"
-                strokeWidth="6"
-                fill="none"
-              />
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="url(#gradient-purple)"
-                strokeWidth="6"
-                fill="none"
-                strokeDasharray={`${(games.length > 0 ? 85 : 0) / 100 * 201} 201`}
-                strokeLinecap="round"
-              />
-              <defs>
-                <linearGradient id="gradient-purple" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#a78bfa" />
-                  <stop offset="100%" stopColor="#8b5cf6" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xl font-bold text-white">{games.length}</span>
-            </div>
-          </div>
-          <span className="text-xs text-gray-400">Games</span>
-        </div>
-
-        <div className="flex flex-col items-center min-w-[80px]">
-          <div className="relative w-20 h-20 mb-2">
-            <svg className="w-20 h-20 transform -rotate-90">
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="rgba(16, 185, 129, 0.2)"
-                strokeWidth="6"
-                fill="none"
-              />
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="url(#gradient-green)"
-                strokeWidth="6"
-                fill="none"
-                strokeDasharray={`${activityScore / 100 * 201} 201`}
-                strokeLinecap="round"
-              />
-              <defs>
-                <linearGradient id="gradient-green" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#34d399" />
-                  <stop offset="100%" stopColor="#10b981" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xl font-bold text-white">{activityScore}</span>
-            </div>
-          </div>
-          <span className="text-xs text-gray-400">Activity</span>
-        </div>
-
-        <div className="flex flex-col items-center min-w-[80px]">
-          <div className="relative w-20 h-20 mb-2">
-            <svg className="w-20 h-20 transform -rotate-90">
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="rgba(251, 146, 60, 0.2)"
-                strokeWidth="6"
-                fill="none"
-              />
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                stroke="url(#gradient-orange)"
-                strokeWidth="6"
-                fill="none"
-                strokeDasharray={`${(sessions.length > 0 ? 75 : 0) / 100 * 201} 201`}
-                strokeLinecap="round"
-              />
-              <defs>
-                <linearGradient id="gradient-orange" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fbbf24" />
-                  <stop offset="100%" stopColor="#f59e0b" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xl font-bold text-white">{sessions.length}</span>
-            </div>
-          </div>
-          <span className="text-xs text-gray-400">Training</span>
-        </div>
       </div>
 
       {/* Quick Actions - Show above Spotlight when no data */}
@@ -247,7 +120,7 @@ const Dashboard = () => {
       <div>
         <h2 className="text-xl font-semibold mb-4 text-white">Spotlight</h2>
         
-        {/* Performance Card */}
+        {/* Performance Card with AI Insights */}
         <Card className="gradient-card-blue border-blue-500/20 mb-4 overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-start justify-between mb-4">
@@ -257,27 +130,139 @@ const Dashboard = () => {
               <span className="text-xs text-gray-400 uppercase tracking-wider">Performance</span>
             </div>
             
-            <div className="mb-4">
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-5xl font-bold text-white">{readinessScore}</span>
-                <span className="text-lg text-blue-400">
-                  {readinessScore >= 80 ? 'Optimal' : readinessScore >= 60 ? 'Good' : 'Fair'}
-                </span>
-              </div>
-            </div>
+            {!aiInsights ? (
+              <>
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-5xl font-bold text-white">{readinessScore}</span>
+                    <span className="text-lg text-blue-400">
+                      {readinessScore >= 80 ? 'Optimal' : readinessScore >= 60 ? 'Good' : 'Fair'}
+                    </span>
+                  </div>
+                </div>
 
-            <h3 className="text-lg font-semibold text-white mb-2">Keep it up!</h3>
-            <p className="text-sm text-gray-300 leading-relaxed">
-              {games.length > 0 
-                ? `You're averaging ${calculateAverage('points')} points per game. Your consistency is paying off!`
-                : "Start logging your games to track your performance and see your progress over time."}
-            </p>
+                <h3 className="text-lg font-semibold text-white mb-2">Keep it up!</h3>
+                <p className="text-sm text-gray-300 leading-relaxed mb-4">
+                  {games.length > 0
+                    ? `You're averaging ${calculateAverage('points')} points per game. Your consistency is paying off!`
+                    : "Start logging your games to track your performance and see your progress over time."}
+                </p>
+
+                {games.length > 0 && (
+                  <Button
+                    onClick={async () => {
+                      setIsGeneratingInsights(true);
+                      try {
+                        console.log('Calling AI insights API...');
+                        const insights = await aiApi.generateInsights();
+                        console.log('AI insights received:', insights);
+                        setAiInsights(insights);
+                        showSuccess('AI insights generated!');
+                      } catch (error) {
+                        console.error('AI insights error:', error);
+                        showError(`Failed to generate insights: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                      } finally {
+                        setIsGeneratingInsights(false);
+                      }
+                    }}
+                    disabled={isGeneratingInsights}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isGeneratingInsights ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating AI Insights...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Get AI Insights
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                {/* Takeaway */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Your Progress</h3>
+                  <p className="text-sm text-gray-300 leading-relaxed">
+                    {aiInsights.takeaway}
+                  </p>
+                </div>
+
+                {/* Progress Areas */}
+                <div>
+                  <h4 className="text-sm font-semibold text-white mb-2">Performance Breakdown</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-400 text-xs mt-0.5">●</span>
+                      <div>
+                        <span className="text-xs font-medium text-gray-400">Scoring:</span>
+                        <span className="text-xs text-gray-300 ml-1">{aiInsights.progress.scoring}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-400 text-xs mt-0.5">●</span>
+                      <div>
+                        <span className="text-xs font-medium text-gray-400">Playmaking:</span>
+                        <span className="text-xs text-gray-300 ml-1">{aiInsights.progress.playmaking}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-400 text-xs mt-0.5">●</span>
+                      <div>
+                        <span className="text-xs font-medium text-gray-400">Defense:</span>
+                        <span className="text-xs text-gray-300 ml-1">{aiInsights.progress.defense}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-400 text-xs mt-0.5">●</span>
+                      <div>
+                        <span className="text-xs font-medium text-gray-400">Ball Control:</span>
+                        <span className="text-xs text-gray-300 ml-1">{aiInsights.progress.ballControl}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-400 text-xs mt-0.5">●</span>
+                      <div>
+                        <span className="text-xs font-medium text-gray-400">Rebounding:</span>
+                        <span className="text-xs text-gray-300 ml-1">{aiInsights.progress.rebounding}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Next Steps */}
+                <div>
+                  <h4 className="text-sm font-semibold text-white mb-2">What to Work On Next</h4>
+                  <div className="space-y-2">
+                    {aiInsights.nextSteps.map((step, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <span className="text-blue-400 text-xs mt-0.5">{index + 1}.</span>
+                        <span className="text-xs text-gray-300">{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => setAiInsights(null)}
+                  variant="outline"
+                  className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                >
+                  Generate New Insights
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Training Card */}
-        <Card className="gradient-card-purple border-purple-500/20 overflow-hidden">
-          <CardContent className="p-6">
+        <Link to="/stats/training">
+          <Card className="gradient-card-purple border-purple-500/20 overflow-hidden hover:border-purple-500/40 transition-all cursor-pointer">
+            <CardContent className="p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="gradient-icon-purple p-3 rounded-2xl">
                 <Target className="w-6 h-6 text-white" />
@@ -298,8 +283,9 @@ const Dashboard = () => {
                 ? "Your dedication to training is building the skills you need to excel in games."
                 : "Log your training sessions to track skill development and see improvement over time."}
             </p>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Stats Overview */}

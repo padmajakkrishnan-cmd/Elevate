@@ -1,78 +1,64 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Lightbulb, TrendingUp, TrendingDown, Target, Sparkles } from 'lucide-react';
-import { gameStatsStorage, trainingStorage, goalsStorage, summariesStorage } from '@/lib/storage';
+import { insightsApi, gameStatsApi, trainingSessionsApi, goalsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { generateInsights } from '@/lib/aiInsights';
-import type { AISummary, GameStat, TrainingSession } from '@/types';
+import type { AISummary } from '@/types';
 import { showSuccess } from '@/utils/toast';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Insights = () => {
   const { user } = useAuth();
-  const [summaries, setSummaries] = useState<AISummary[]>([]);
+  const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
 
-  const loadSummaries = () => {
-    const allSummaries = summariesStorage.getAll();
-    const userSummaries = allSummaries.filter(s => s.userId === user?.id);
-    setSummaries(userSummaries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-  };
+  // Fetch AI summaries
+  const { data: summaries = [], isLoading } = useQuery({
+    queryKey: ['insights'],
+    queryFn: insightsApi.getAll,
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    loadSummaries();
-  }, [user]);
+  // Generate insights mutation
+  const generateMutation = useMutation({
+    mutationFn: insightsApi.generate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['insights'] });
+      showSuccess('AI summary generated!');
+      setGenerating(false);
+    },
+    onError: () => {
+      setGenerating(false);
+    },
+  });
 
   const generateSummary = (period: 'weekly' | 'monthly') => {
-    if (!user) return;
-    
     setGenerating(true);
-
-    const games = gameStatsStorage.getAll().filter(g => g.userId === user.id);
-    const sessions = trainingStorage.getAll().filter(s => s.userId === user.id);
-    const goals = goalsStorage.getAll().filter(g => g.userId === user.id);
-
-    const now = new Date();
-    const startDate = new Date();
-    if (period === 'weekly') {
-      startDate.setDate(now.getDate() - 7);
-    } else {
-      startDate.setMonth(now.getMonth() - 1);
-    }
-
-    const insights = generateInsights({ games, sessions, goals, period });
-
-    const summary: AISummary = {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      period,
-      startDate: startDate.toISOString(),
-      endDate: now.toISOString(),
-      insights: insights.insights,
-      improvements: insights.improvements,
-      focusAreas: insights.focusAreas,
-      motivationalMessage: insights.motivationalMessage,
-      createdAt: now.toISOString(),
-    };
-
-    summariesStorage.add(summary);
-    showSuccess(`${period === 'weekly' ? 'Weekly' : 'Monthly'} summary generated!`);
-    loadSummaries();
-    setGenerating(false);
+    generateMutation.mutate(period);
   };
 
-  const weeklySummaries = summaries.filter(s => s.period === 'weekly');
-  const monthlySummaries = summaries.filter(s => s.period === 'monthly');
+  const sortedSummaries = [...summaries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const weeklySummaries = sortedSummaries.filter(s => s.period === 'weekly');
+  const monthlySummaries = sortedSummaries.filter(s => s.period === 'monthly');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">AI Insights</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-2 text-white">AI Insights</h1>
+          <p className="text-gray-400">
             Personalized analysis and recommendations based on your performance
           </p>
         </div>
@@ -89,22 +75,22 @@ const Insights = () => {
       </div>
 
       {summaries.length === 0 ? (
-        <Card>
+        <Card className="gradient-card-blue border-blue-500/20">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <Lightbulb className="w-6 h-6 text-primary" />
+              <div className="gradient-icon-blue p-2 rounded-lg">
+                <Lightbulb className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle>No Insights Yet</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-white">No Insights Yet</CardTitle>
+                <CardDescription className="text-gray-400">
                   Generate your first AI-powered summary to get personalized insights
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-gray-400 mb-4">
               Once you've logged games and training sessions, click "Generate Weekly" or "Generate Monthly" to get AI-powered insights about your performance, improvements, and areas to focus on.
             </p>
             <div className="flex gap-2">
@@ -128,7 +114,7 @@ const Insights = () => {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {summaries.map((summary) => (
+            {sortedSummaries.map((summary) => (
               <SummaryCard key={summary.id} summary={summary} />
             ))}
           </TabsContent>
@@ -139,8 +125,8 @@ const Insights = () => {
                 <SummaryCard key={summary.id} summary={summary} />
               ))
             ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
+              <Card className="gradient-card-blue border-blue-500/20">
+                <CardContent className="py-8 text-center text-gray-400">
                   No weekly summaries yet. Generate one to get started!
                 </CardContent>
               </Card>
@@ -153,8 +139,8 @@ const Insights = () => {
                 <SummaryCard key={summary.id} summary={summary} />
               ))
             ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
+              <Card className="gradient-card-blue border-blue-500/20">
+                <CardContent className="py-8 text-center text-gray-400">
                   No monthly summaries yet. Generate one to get started!
                 </CardContent>
               </Card>
@@ -169,9 +155,21 @@ const Insights = () => {
 const SummaryCard = ({ summary }: { summary: AISummary }) => {
   const { user } = useAuth();
   
+  // Fetch data for charts
+  const { data: games = [] } = useQuery({
+    queryKey: ['gameStats'],
+    queryFn: gameStatsApi.getAll,
+    enabled: !!user,
+  });
+
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['trainingSessions'],
+    queryFn: trainingSessionsApi.getAll,
+    enabled: !!user,
+  });
+
   // Get data for the summary period
   const getPerformanceData = () => {
-    const games = gameStatsStorage.getAll().filter(g => g.userId === user?.id);
     const periodGames = games.filter(g => {
       const gameDate = new Date(g.date);
       return gameDate >= new Date(summary.startDate) && gameDate <= new Date(summary.endDate);
@@ -188,7 +186,6 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
   };
 
   const getShootingData = () => {
-    const sessions = trainingStorage.getAll().filter(s => s.userId === user?.id);
     const periodSessions = sessions.filter(s => {
       const sessionDate = new Date(s.date);
       return sessionDate >= new Date(summary.startDate) && sessionDate <= new Date(summary.endDate);
@@ -217,39 +214,39 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
   const improvementData = getImprovementChartData();
 
   return (
-    <Card>
+    <Card className="gradient-card-blue border-blue-500/20">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Sparkles className="w-5 h-5 text-blue-400" />
               {summary.period === 'weekly' ? 'Weekly' : 'Monthly'} Summary
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-400">
               {new Date(summary.startDate).toLocaleDateString()} - {new Date(summary.endDate).toLocaleDateString()}
             </CardDescription>
           </div>
-          <Badge variant="outline">{summary.period}</Badge>
+          <Badge variant="outline" className="border-gray-600 text-gray-300">{summary.period}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Performance Trend Chart */}
         {performanceData.length > 0 && (
           <div>
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2 text-white">
               <TrendingUp className="w-4 h-4" />
               Performance Trend
             </h3>
             <ResponsiveContainer width="100%" height={250}>
               <AreaChart data={performanceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" />
+                <YAxis stroke="rgba(255,255,255,0.5)" />
+                <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid rgba(255,255,255,0.1)' }} />
                 <Legend />
-                <Area type="monotone" dataKey="points" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="Points" />
-                <Area type="monotone" dataKey="assists" stroke="hsl(var(--secondary))" fill="hsl(var(--secondary))" fillOpacity={0.3} name="Assists" />
-                <Area type="monotone" dataKey="rebounds" stroke="hsl(var(--accent))" fill="hsl(var(--accent))" fillOpacity={0.3} name="Rebounds" />
+                <Area type="monotone" dataKey="points" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.3} name="Points" />
+                <Area type="monotone" dataKey="assists" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.3} name="Assists" />
+                <Area type="monotone" dataKey="rebounds" stroke="#34d399" fill="#34d399" fillOpacity={0.3} name="Rebounds" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -258,19 +255,19 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
         {/* Shooting Progress Chart */}
         {shootingData.length > 0 && (
           <div>
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2 text-white">
               <Target className="w-4 h-4" />
               Shooting Progress
             </h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={shootingData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" />
+                <YAxis stroke="rgba(255,255,255,0.5)" />
+                <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid rgba(255,255,255,0.1)' }} />
                 <Legend />
-                <Line type="monotone" dataKey="Free Throw %" stroke="hsl(var(--primary))" strokeWidth={2} />
-                <Line type="monotone" dataKey="3-Point %" stroke="hsl(var(--secondary))" strokeWidth={2} />
+                <Line type="monotone" dataKey="Free Throw %" stroke="#60a5fa" strokeWidth={2} />
+                <Line type="monotone" dataKey="3-Point %" stroke="#a78bfa" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -279,14 +276,14 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
         {/* Key Insights */}
         {summary.insights.length > 0 && (
           <div>
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2 text-white">
               <Lightbulb className="w-4 h-4" />
               Key Insights
             </h3>
             <ul className="space-y-2">
               {summary.insights.map((insight, idx) => (
-                <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
+                <li key={idx} className="text-sm text-gray-400 flex items-start gap-2">
+                  <span className="text-blue-400 mt-1">•</span>
                   <span>{insight}</span>
                 </li>
               ))}
@@ -297,25 +294,25 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
         {/* Improvements Chart */}
         {improvementData.length > 0 && (
           <div>
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2 text-white">
               <TrendingUp className="w-4 h-4" />
               Improvements
             </h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={improvementData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="metric" type="category" width={120} />
-                <Tooltip />
-                <Bar dataKey="change" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis type="number" stroke="rgba(255,255,255,0.5)" />
+                <YAxis dataKey="metric" type="category" width={120} stroke="rgba(255,255,255,0.5)" />
+                <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <Bar dataKey="change" fill="#60a5fa" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <div className="space-y-3 mt-4">
               {summary.improvements.map((improvement, idx) => (
-                <div key={idx} className="p-3 border rounded-lg">
+                <div key={idx} className="p-3 border border-white/10 rounded-lg bg-black/20">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{improvement.metric}</span>
-                    <Badge variant={improvement.change > 0 ? 'default' : 'secondary'}>
+                    <span className="font-medium text-white">{improvement.metric}</span>
+                    <Badge variant={improvement.change > 0 ? 'default' : 'secondary'} className="bg-blue-500/20 text-blue-300 border-blue-500/30">
                       {improvement.change > 0 ? (
                         <TrendingUp className="w-3 h-3 mr-1" />
                       ) : (
@@ -324,7 +321,7 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
                       {Math.abs(improvement.change)}%
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{improvement.description}</p>
+                  <p className="text-sm text-gray-400">{improvement.description}</p>
                 </div>
               ))}
             </div>
@@ -334,14 +331,14 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
         {/* Focus Areas */}
         {summary.focusAreas.length > 0 && (
           <div>
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <h3 className="font-semibold mb-3 flex items-center gap-2 text-white">
               <Target className="w-4 h-4" />
               Focus Areas
             </h3>
             <ul className="space-y-2">
               {summary.focusAreas.map((area, idx) => (
-                <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                  <span className="text-primary mt-1">→</span>
+                <li key={idx} className="text-sm text-gray-400 flex items-start gap-2">
+                  <span className="text-blue-400 mt-1">→</span>
                   <span>{area}</span>
                 </li>
               ))}
@@ -350,8 +347,8 @@ const SummaryCard = ({ summary }: { summary: AISummary }) => {
         )}
 
         {/* Motivational Message */}
-        <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-          <p className="text-sm font-medium text-primary">{summary.motivationalMessage}</p>
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <p className="text-sm font-medium text-blue-300">{summary.motivationalMessage}</p>
         </div>
       </CardContent>
     </Card>

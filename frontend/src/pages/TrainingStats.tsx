@@ -1,37 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TrainingDialog } from '@/components/TrainingDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Edit, Trash2, Target } from 'lucide-react';
-import { trainingStorage } from '@/lib/storage';
+import { trainingSessionsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import type { TrainingSession } from '@/types';
 import { showSuccess } from '@/utils/toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const TrainingStats = () => {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<TrainingSession[]>([]);
+  const queryClient = useQueryClient();
   const [editingSession, setEditingSession] = useState<TrainingSession | undefined>();
   const [deleteSession, setDeleteSession] = useState<TrainingSession | null>(null);
 
-  const loadSessions = () => {
-    const allSessions = trainingStorage.getAll();
-    const userSessions = allSessions.filter(s => s.userId === user?.id);
-    setSessions(userSessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-  };
+  // Fetch training sessions
+  const { data: sessions = [], isLoading } = useQuery({
+    queryKey: ['trainingSessions'],
+    queryFn: trainingSessionsApi.getAll,
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    loadSessions();
-  }, [user]);
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: trainingSessionsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trainingSessions'] });
+      showSuccess('Training session deleted');
+      setDeleteSession(null);
+    },
+  });
 
   const handleDelete = () => {
     if (deleteSession) {
-      trainingStorage.delete(deleteSession.id);
-      showSuccess('Training session deleted');
-      loadSessions();
-      setDeleteSession(null);
+      deleteMutation.mutate(deleteSession.id);
     }
   };
 
@@ -41,7 +46,6 @@ const TrainingStats = () => {
 
   const handleCloseDialog = () => {
     setEditingSession(undefined);
-    loadSessions();
   };
 
   const getMetricDisplay = (session: TrainingSession) => {
@@ -57,11 +61,20 @@ const TrainingStats = () => {
     return metrics;
   };
 
+  const sortedSessions = [...sessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const shootingSessions = sessions.filter(s => s.drillType === 'Shooting' || s.drillType === 'Mixed').length;
   const skillsSessions = sessions.filter(s => s.drillType === 'Skills' || s.drillType === 'Mixed').length;
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   const thisWeek = sessions.filter(s => new Date(s.date) >= weekAgo).length;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -72,7 +85,7 @@ const TrainingStats = () => {
             Log your practice drills and track skill improvement
           </p>
         </div>
-        <TrainingDialog onClose={loadSessions} />
+        <TrainingDialog />
       </div>
 
       {sessions.length > 0 && (
@@ -114,7 +127,7 @@ const TrainingStats = () => {
             <p className="text-gray-400 mb-6 max-w-md mx-auto">
               Start tracking your practice sessions to monitor skill development and see improvement over time.
             </p>
-            <TrainingDialog onClose={loadSessions} />
+            <TrainingDialog />
           </CardContent>
         </Card>
       ) : (
@@ -127,7 +140,7 @@ const TrainingStats = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {sessions.map((session) => {
+              {sortedSessions.map((session) => {
                 const metrics = getMetricDisplay(session);
                 return (
                   <div key={session.id} className="flex items-start justify-between p-4 bg-black/20 border border-white/5 rounded-xl hover:border-white/10 transition-colors">

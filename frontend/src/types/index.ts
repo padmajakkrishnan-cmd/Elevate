@@ -11,10 +11,12 @@ export interface PlayerProfile {
   position: string;
   ageGroup: string;
   sport: string;
-  height?: string;
-  weight?: string;
-  wingspan?: string;
-  goals?: string;
+  heightFeet?: number;
+  heightInches?: number;
+  weight?: number;
+  wingspanFeet?: number;
+  wingspanInches?: number;
+  totalGoals?: number;
   photo?: string;
   bio?: string;
   photos: string[];

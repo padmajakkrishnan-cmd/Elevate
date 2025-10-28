@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { PlayerProfile } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
+import { profileApi } from '@/lib/api';
 import { showSuccess } from '@/utils/toast';
 import { TrendingUp } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
 
 const ProfileCreate = () => {
   const { user, updateProfile } = useAuth();
@@ -20,9 +22,22 @@ const ProfileCreate = () => {
     position: '',
     ageGroup: '',
     sport: 'Basketball',
-    height: '',
+    heightFeet: '',
+    heightInches: '',
     weight: '',
-    wingspan: '',
+    wingspanFeet: '',
+    wingspanInches: '',
+    bio: '',
+  });
+
+  // Create profile mutation
+  const createMutation = useMutation({
+    mutationFn: profileApi.create,
+    onSuccess: (data) => {
+      updateProfile(data);
+      showSuccess('Profile created! Welcome to Elevate!');
+      navigate('/dashboard');
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -30,18 +45,23 @@ const ProfileCreate = () => {
 
     if (!user) return;
 
-    const profile: PlayerProfile = {
-      userId: user.id,
-      ...formData,
+    const profileData = {
+      name: formData.name,
+      team: formData.team,
+      position: formData.position,
+      ageGroup: formData.ageGroup,
+      sport: formData.sport,
+      heightFeet: formData.heightFeet ? parseInt(formData.heightFeet) : null,
+      heightInches: formData.heightInches ? parseInt(formData.heightInches) : null,
+      weight: formData.weight ? parseInt(formData.weight) : null,
+      wingspanFeet: formData.wingspanFeet ? parseInt(formData.wingspanFeet) : null,
+      wingspanInches: formData.wingspanInches ? parseInt(formData.wingspanInches) : null,
+      bio: formData.bio || null,
       photos: [],
       videos: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    updateProfile(profile);
-    showSuccess('Profile created! Welcome to Elevate!');
-    navigate('/dashboard');
+    createMutation.mutate(profileData);
   };
 
   const handleChange = (field: string, value: string) => {
@@ -139,38 +159,85 @@ const ProfileCreate = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="height">Height (optional)</Label>
-                  <Input
-                    id="height"
-                    value={formData.height}
-                    onChange={(e) => handleChange('height', e.target.value)}
-                    placeholder="5'10&quot;"
-                  />
+                  <Label htmlFor="heightFeet">Height (optional)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={formData.heightFeet} onValueChange={(value) => handleChange('heightFeet', value)}>
+                      <SelectTrigger id="heightFeet">
+                        <SelectValue placeholder="Feet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(feet => (
+                          <SelectItem key={feet} value={feet.toString()}>{feet} ft</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={formData.heightInches} onValueChange={(value) => handleChange('heightInches', value)}>
+                      <SelectTrigger id="heightInches">
+                        <SelectValue placeholder="Inches" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(inches => (
+                          <SelectItem key={inches} value={inches.toString()}>{inches} in</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (optional)</Label>
+                  <Label htmlFor="weight">Weight in lbs (optional)</Label>
                   <Input
                     id="weight"
+                    type="number"
                     value={formData.weight}
                     onChange={(e) => handleChange('weight', e.target.value)}
-                    placeholder="150 lbs"
+                    placeholder="150"
+                    min="1"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="wingspan">Wingspan (optional)</Label>
-                  <Input
-                    id="wingspan"
-                    value={formData.wingspan}
-                    onChange={(e) => handleChange('wingspan', e.target.value)}
-                    placeholder="6'0&quot;"
-                  />
+                  <Label htmlFor="wingspanFeet">Wingspan (optional)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={formData.wingspanFeet} onValueChange={(value) => handleChange('wingspanFeet', value)}>
+                      <SelectTrigger id="wingspanFeet">
+                        <SelectValue placeholder="Feet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(feet => (
+                          <SelectItem key={feet} value={feet.toString()}>{feet} ft</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={formData.wingspanInches} onValueChange={(value) => handleChange('wingspanInches', value)}>
+                      <SelectTrigger id="wingspanInches">
+                        <SelectValue placeholder="Inches" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(inches => (
+                          <SelectItem key={inches} value={inches.toString()}>{inches} in</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                Create Profile & Get Started
+              <div className="space-y-2">
+                <Label htmlFor="bio">Bio (optional)</Label>
+                <Textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) => handleChange('bio', e.target.value)}
+                  placeholder="Tell us about yourself, your playing style, achievements..."
+                  rows={3}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground">{formData.bio.length}/500 characters</p>
+              </div>
+
+              <Button type="submit" className="w-full" size="lg" disabled={createMutation.isPending}>
+                {createMutation.isPending ? 'Creating...' : 'Create Profile & Get Started'}
               </Button>
             </form>
           </CardContent>

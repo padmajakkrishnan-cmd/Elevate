@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
 import type { GameStat } from '@/types';
-import { gameStatsStorage } from '@/lib/storage';
+import { gameStatsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { showSuccess } from '@/utils/toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface GameStatsDialogProps {
   editGame?: GameStat;
@@ -17,6 +18,7 @@ interface GameStatsDialogProps {
 
 export const GameStatsDialog: React.FC<GameStatsDialogProps> = ({ editGame, onClose, trigger }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     date: '',
@@ -47,34 +49,27 @@ export const GameStatsDialog: React.FC<GameStatsDialogProps> = ({ editGame, onCl
     }
   }, [editGame]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    const gameData: GameStat = {
-      id: editGame?.id || crypto.randomUUID(),
-      userId: user.id,
-      date: formData.date,
-      opponent: formData.opponent,
-      points: Number(formData.points),
-      assists: Number(formData.assists),
-      rebounds: Number(formData.rebounds),
-      steals: Number(formData.steals),
-      blocks: Number(formData.blocks),
-      turnovers: Number(formData.turnovers),
-      minutes: Number(formData.minutes),
-      createdAt: editGame?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (editGame) {
-      gameStatsStorage.update(editGame.id, gameData);
-      showSuccess('Game stats updated!');
-    } else {
-      gameStatsStorage.add(gameData);
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: gameStatsApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gameStats'] });
       showSuccess('Game stats logged!');
-    }
+      handleClose();
+    },
+  });
 
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => gameStatsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gameStats'] });
+      showSuccess('Game stats updated!');
+      handleClose();
+    },
+  });
+
+  const handleClose = () => {
     setOpen(false);
     setFormData({
       date: '',
@@ -88,6 +83,29 @@ export const GameStatsDialog: React.FC<GameStatsDialogProps> = ({ editGame, onCl
       minutes: '',
     });
     onClose?.();
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const gameData = {
+      date: formData.date,
+      opponent: formData.opponent,
+      points: Number(formData.points),
+      assists: Number(formData.assists),
+      rebounds: Number(formData.rebounds),
+      steals: Number(formData.steals),
+      blocks: Number(formData.blocks),
+      turnovers: Number(formData.turnovers),
+      minutes: Number(formData.minutes),
+    };
+
+    if (editGame) {
+      updateMutation.mutate({ id: editGame.id, data: gameData });
+    } else {
+      createMutation.mutate(gameData);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -216,10 +234,10 @@ export const GameStatsDialog: React.FC<GameStatsDialogProps> = ({ editGame, onCl
           </div>
 
           <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
               {editGame ? 'Update Game' : 'Log Game'}
             </Button>
           </div>
