@@ -3,10 +3,11 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime, time
 from datetime import date as date_type
-from backend.models.training_session import TrainingSession
-from backend.models.user import User, PyObjectId
-from backend.database import get_training_sessions_collection
-from backend.dependencies.auth import get_current_user
+from models.training_session import TrainingSession
+from models.user import User
+from models.common import PyObjectId
+from database import get_training_sessions_collection
+from dependencies.auth import get_current_user
 from bson import ObjectId
 
 router = APIRouter(prefix="/api/v1/training-sessions", tags=["training-sessions"])
@@ -98,7 +99,7 @@ async def create_training_session(
     # Create new training session document
     now = datetime.utcnow()
     training_session_data = {
-        "user_id": ObjectId(current_user.id),
+        "user_id": current_user.firebase_uid,
         "date": datetime.combine(request.date, time(12, 0)),
         "drill_type": request.drill_type,
         "metrics": request.metrics if request.metrics else {},
@@ -114,7 +115,7 @@ async def create_training_session(
     # Return the created training session
     return TrainingSessionResponse(
         id=training_session_id,
-        user_id=str(current_user.id),
+        user_id=current_user.firebase_uid,
         date=training_session_data["date"].date(),
         drill_type=request.drill_type,
         metrics=request.metrics if request.metrics else {},
@@ -150,7 +151,7 @@ async def get_all_training_sessions(
     
     # Query all training sessions for the current user, sorted by date descending
     cursor = training_sessions_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     ).sort("date", -1)
     
     # Convert cursor to list and transform documents to response models
@@ -218,7 +219,7 @@ async def get_training_session(
         )
     
     # Verify that the session belongs to the current user
-    if str(session_doc["user_id"]) != str(current_user.id):
+    if str(session_doc["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this training session"
@@ -287,7 +288,7 @@ async def update_training_session(
         )
     
     # Verify that the session belongs to the current user
-    if str(session_doc["user_id"]) != str(current_user.id):
+    if str(session_doc["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to update this training session"
@@ -376,7 +377,7 @@ async def delete_training_session(
         )
     
     # Verify that the session belongs to the current user
-    if str(session_doc["user_id"]) != str(current_user.id):
+    if str(session_doc["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to delete this training session"

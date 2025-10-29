@@ -2,19 +2,19 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
 from typing import List
 from datetime import datetime, timedelta
-from backend.models.ai_summary import AISummary, PeriodType
-from backend.models.game_stat import GameStat
-from backend.models.training_session import TrainingSession
-from backend.models.goal import Goal
-from backend.models.user import User
-from backend.database import (
+from models.ai_summary import AISummary, PeriodType
+from models.game_stat import GameStat
+from models.training_session import TrainingSession
+from models.goal import Goal
+from models.user import User
+from database import (
     get_ai_summaries_collection,
     get_game_stats_collection,
     get_training_sessions_collection,
     get_goals_collection
 )
-from backend.dependencies.auth import get_current_user
-from backend.services.insights import generate_insights
+from dependencies.auth import get_current_user
+from services.insights import generate_insights
 from bson import ObjectId
 
 router = APIRouter(prefix="/api/v1/insights", tags=["insights"])
@@ -87,21 +87,21 @@ async def generate_ai_insights(
     
     # Fetch all user's games
     games_cursor = game_stats_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     ).sort("date", -1)
     games_data = await games_cursor.to_list(length=None)
     games = [GameStat(**game) for game in games_data]
     
     # Fetch all user's training sessions
     sessions_cursor = training_sessions_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     ).sort("date", -1)
     sessions_data = await sessions_cursor.to_list(length=None)
     sessions = [TrainingSession(**session) for session in sessions_data]
     
     # Fetch all user's goals
     goals_cursor = goals_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     )
     goals_data = await goals_cursor.to_list(length=None)
     goals = [Goal(**goal) for goal in goals_data]
@@ -116,7 +116,7 @@ async def generate_ai_insights(
     
     # Create AI summary document
     summary_doc = {
-        "user_id": ObjectId(current_user.id),
+        "user_id": current_user.firebase_uid,
         "period": request.period.value,
         "start_date": period_start.date(),
         "end_date": now.date(),
@@ -134,7 +134,7 @@ async def generate_ai_insights(
     # Return the created summary
     return AISummaryResponse(
         id=summary_id,
-        user_id=str(current_user.id),
+        user_id=current_user.firebase_uid,
         period=request.period,
         start_date=period_start.date().isoformat(),
         end_date=now.date().isoformat(),
@@ -173,7 +173,7 @@ async def get_all_summaries(
     
     # Fetch all summaries for the current user, sorted by created_at descending
     summaries_cursor = ai_summaries_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     ).sort("created_at", -1)
     
     summaries_data = await summaries_cursor.to_list(length=None)
@@ -247,7 +247,7 @@ async def get_summary_by_id(
         )
     
     # Verify ownership - check if the summary belongs to the current user
-    if str(summary_doc["user_id"]) != str(current_user.id):
+    if str(summary_doc["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this summary"

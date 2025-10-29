@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from backend.dependencies.auth import get_current_user
-from backend.models.user import User
-from backend.services.ai_insights import generate_performance_insights
-from backend.database import get_game_stats_collection
+from dependencies.auth import get_current_user
+from models.user import User
+from services.ai_insights import generate_performance_insights
+from database import get_game_stats_collection
 from pydantic import BaseModel
 from typing import Dict, List
 
@@ -39,7 +39,7 @@ async def generate_insights(current_user: User = Depends(get_current_user)):
     try:
         # Fetch user's last 10 games
         games_cursor = get_game_stats_collection().find(
-            {"user_id": str(current_user.id)}
+            {"user_id": current_user.firebase_uid}
         ).sort("date", -1).limit(10)
         games = await games_cursor.to_list(length=10)
         

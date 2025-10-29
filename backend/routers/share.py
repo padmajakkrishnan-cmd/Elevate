@@ -1,16 +1,16 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from backend.models.share_link import ShareLink
-from backend.models.user import User
-from backend.database import (
+from models.share_link import ShareLink
+from models.user import User
+from database import (
     get_share_links_collection,
     get_profiles_collection,
     get_game_stats_collection,
     get_training_sessions_collection,
     get_goals_collection
 )
-from backend.dependencies.auth import get_current_user
+from dependencies.auth import get_current_user
 from datetime import datetime
 from datetime import date as date_type
 from bson import ObjectId
@@ -61,7 +61,7 @@ async def create_share_link(
     share_links_collection = get_share_links_collection()
     
     # Fetch the user's profile to get their name
-    profile = await profiles_collection.find_one({"user_id": ObjectId(current_user.id)})
+    profile = await profiles_collection.find_one({"user_id": current_user.firebase_uid})
     
     if not profile:
         raise HTTPException(
@@ -75,7 +75,7 @@ async def create_share_link(
     # Create new share link document
     now = datetime.utcnow()
     share_link_data = {
-        "user_id": ObjectId(current_user.id),
+        "user_id": current_user.firebase_uid,
         "token": token,
         "player_name": profile["name"],
         "view_count": 0,
@@ -96,7 +96,7 @@ async def create_share_link(
     # Return the created share link
     return ShareLinkResponse(
         id=share_link_id,
-        user_id=str(current_user.id),
+        user_id=current_user.firebase_uid,
         token=token,
         player_name=profile["name"],
         view_count=0,
@@ -133,7 +133,7 @@ async def get_all_share_links(
     
     # Fetch all share links for the current user, sorted by created_at descending
     cursor = share_links_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     ).sort("created_at", -1)
     
     # Convert cursor to list
@@ -208,7 +208,7 @@ async def delete_share_link(
         )
     
     # Verify that the share link belongs to the current user
-    if str(share_link["user_id"]) != str(current_user.id):
+    if str(share_link["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to delete this share link"

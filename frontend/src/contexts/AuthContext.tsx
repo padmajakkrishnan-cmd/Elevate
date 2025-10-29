@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User, PlayerProfile } from '@/types';
 import { authApi, profileApi } from '@/lib/api';
+import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, googleProvider } from '@/config/firebase';
 
 interface AuthContextType {
   user: User | null;
   profile: PlayerProfile | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
-  googleLogin: (credential: string) => Promise<{ isNewUser: boolean }>;
+  googleLogin: () => Promise<{ isNewUser: boolean }>;
   logout: () => void;
   updateProfile: (profile: PlayerProfile) => void;
   isAuthenticated: boolean;
@@ -54,7 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authApi.login(email, password);
+      // Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Get Firebase ID token
+      const idToken = await userCredential.user.getIdToken();
+      
+      // Send Firebase ID token to backend
+      const response = await authApi.login(idToken);
       localStorage.setItem('token', response.access_token);
       
       // Fetch user data
@@ -69,29 +78,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Profile might not exist yet
         console.log('No profile found');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      throw new Error('Invalid credentials');
+      
+      // Map Firebase error codes to user-friendly messages
+      if (error.code === 'auth/invalid-email') {
+        throw new Error('Invalid email format');
+      } else if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many failed attempts. Please try again later');
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your connection');
+      } else {
+        throw new Error('Login failed. Please try again');
+      }
     }
   };
 
   const register = async (email: string, password: string) => {
     try {
+      // Send email/password to backend - backend creates user in Firebase using Admin SDK
       const response = await authApi.signup(email, password);
       localStorage.setItem('token', response.access_token);
       
       // Fetch user data
       const userData = await authApi.me();
       setUser(userData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed:', error);
-      throw new Error('Registration failed');
+      
+      // Handle backend/network errors
+      if (error.response?.status === 400) {
+        throw new Error('Email already registered');
+      } else if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      } else {
+        throw new Error('Registration failed. Please try again');
+      }
     }
   };
 
-  const googleLogin = async (credential: string) => {
+  const googleLogin = async () => {
     try {
-      const response = await authApi.googleAuth(credential);
+      // Sign in with Firebase
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      // Get Firebase ID token
+      const idToken = await result.user.getIdToken();
+      
+      // Send Firebase ID token to backend
+      const response = await authApi.googleAuth(idToken);
       localStorage.setItem('token', response.access_token);
       
       // Fetch user data

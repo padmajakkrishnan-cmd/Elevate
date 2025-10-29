@@ -1,5 +1,5 @@
 import google.generativeai as genai
-from backend.config import settings
+from config import settings
 from typing import List, Dict
 from datetime import datetime
 

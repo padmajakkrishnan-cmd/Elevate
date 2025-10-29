@@ -3,13 +3,13 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 from datetime import date as date_type
 from bson import ObjectId
-from backend.models.user import PyObjectId
+from models.common import PyObjectId
 
 
 class GameStat(BaseModel):
     """Game statistics model for tracking player performance in games"""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    user_id: PyObjectId = Field(..., description="Reference to the user who owns this game stat")
+    user_id: str = Field(..., description="Firebase UID of the user who owns this game stat")
     date: date_type = Field(..., description="Date of the game")
     opponent: str = Field(..., description="Opponent team name", min_length=1, max_length=100)
     points: int = Field(0, description="Points scored", ge=0)

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from backend.models.profile import PlayerProfile
-from backend.models.user import User, PyObjectId
-from backend.database import get_profiles_collection, get_database
-from backend.dependencies.auth import get_current_user
+from models.profile import PlayerProfile
+from models.user import User
+from models.common import PyObjectId
+from database import get_profiles_collection, get_database
+from dependencies.auth import get_current_user
 from datetime import datetime
 from bson import ObjectId
 
@@ -132,7 +133,7 @@ async def create_profile(
     profiles_collection = get_profiles_collection()
     
     # Check if profile already exists for this user
-    existing_profile = await profiles_collection.find_one({"user_id": ObjectId(current_user.id)})
+    existing_profile = await profiles_collection.find_one({"user_id": current_user.firebase_uid})
     if existing_profile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -142,7 +143,7 @@ async def create_profile(
     # Create new profile document
     now = datetime.utcnow()
     profile_data = {
-        "user_id": ObjectId(current_user.id),
+        "user_id": current_user.firebase_uid,
         "name": request.name,
         "team": request.team,
         "position": request.position,
@@ -169,7 +170,7 @@ async def create_profile(
     # Return the created profile
     return ProfileResponse(
         id=profile_id,
-        user_id=str(current_user.id),
+        user_id=current_user.firebase_uid,
         name=request.name,
         team=request.team,
         position=request.position,
@@ -216,7 +217,7 @@ async def get_profile(
     profiles_collection = get_profiles_collection()
     
     # Fetch profile for the current user
-    profile = await profiles_collection.find_one({"user_id": ObjectId(current_user.id)})
+    profile = await profiles_collection.find_one({"user_id": current_user.firebase_uid})
     
     if not profile:
         raise HTTPException(
@@ -278,7 +279,7 @@ async def update_profile(
     profiles_collection = get_profiles_collection()
     
     # Find the user's existing profile
-    profile = await profiles_collection.find_one({"user_id": ObjectId(current_user.id)})
+    profile = await profiles_collection.find_one({"user_id": current_user.firebase_uid})
     
     if not profile:
         raise HTTPException(
@@ -300,12 +301,12 @@ async def update_profile(
     
     # Update the profile in the database
     await profiles_collection.update_one(
-        {"user_id": ObjectId(current_user.id)},
+        {"user_id": current_user.firebase_uid},
         {"$set": update_data}
     )
     
     # Fetch the updated profile
-    updated_profile = await profiles_collection.find_one({"user_id": ObjectId(current_user.id)})
+    updated_profile = await profiles_collection.find_one({"user_id": current_user.firebase_uid})
     
     # Return the updated profile
     return ProfileResponse(
@@ -364,7 +365,7 @@ async def delete_profile(
     db = get_database()
     
     # Find the user's profile first
-    profile = await profiles_collection.find_one({"user_id": ObjectId(current_user.id)})
+    profile = await profiles_collection.find_one({"user_id": current_user.firebase_uid})
     
     if not profile:
         raise HTTPException(
@@ -373,7 +374,7 @@ async def delete_profile(
         )
     
     # Delete all associated data for this user
-    user_id = ObjectId(current_user.id)
+    user_id = current_user.firebase_uid
     
     # Delete from all collections
     await profiles_collection.delete_one({"user_id": user_id})

@@ -3,10 +3,11 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime, time
 from datetime import date as date_type
-from backend.models.game_stat import GameStat
-from backend.models.user import User, PyObjectId
-from backend.database import get_game_stats_collection
-from backend.dependencies.auth import get_current_user
+from models.game_stat import GameStat
+from models.user import User
+from models.common import PyObjectId
+from database import get_game_stats_collection
+from dependencies.auth import get_current_user
 from bson import ObjectId
 
 router = APIRouter(prefix="/api/v1/game-stats", tags=["game-stats"])
@@ -116,7 +117,7 @@ async def create_game_stat(
     # Create new game stat document
     now = datetime.utcnow()
     game_stat_data = {
-        "user_id": ObjectId(current_user.id),
+        "user_id": current_user.firebase_uid,
         "date": datetime.combine(request.date, time(12, 0)),
         "opponent": request.opponent,
         "points": request.points,
@@ -138,7 +139,7 @@ async def create_game_stat(
     # Return the created game stat
     return GameStatResponse(
         id=game_stat_id,
-        user_id=str(current_user.id),
+        user_id=current_user.firebase_uid,
         date=game_stat_data["date"].date(),
         opponent=request.opponent,
         points=request.points,
@@ -180,7 +181,7 @@ async def get_all_games(
     
     # Fetch all games for the current user, sorted by date descending
     cursor = game_stats_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     ).sort("date", -1)
     
     # Convert cursor to list and transform documents to response models
@@ -252,7 +253,7 @@ async def get_game_by_id(
         )
     
     # Verify ownership - game must belong to the current user
-    if str(game_doc["user_id"]) != str(current_user.id):
+    if str(game_doc["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to access this game"
@@ -328,7 +329,7 @@ async def update_game_stat(
         )
     
     # Verify ownership - game must belong to the current user
-    if str(game_doc["user_id"]) != str(current_user.id):
+    if str(game_doc["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to update this game"
@@ -435,7 +436,7 @@ async def delete_game_stat(
         )
     
     # Verify ownership - game must belong to the current user
-    if str(game_doc["user_id"]) != str(current_user.id):
+    if str(game_doc["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to delete this game"

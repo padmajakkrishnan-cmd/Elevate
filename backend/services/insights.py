@@ -6,9 +6,9 @@ to generate actionable insights, improvements, focus areas, and motivational mes
 
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
-from backend.models.game_stat import GameStat
-from backend.models.training_session import TrainingSession
-from backend.models.goal import Goal
+from models.game_stat import GameStat
+from models.training_session import TrainingSession
+from models.goal import Goal
 
 
 def generate_insights(

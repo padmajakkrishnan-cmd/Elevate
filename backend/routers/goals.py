@@ -3,10 +3,11 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 from datetime import date as date_type
-from backend.models.goal import Goal, GoalType, GoalStatus
-from backend.models.user import User, PyObjectId
-from backend.database import get_goals_collection
-from backend.dependencies.auth import get_current_user
+from models.goal import Goal, GoalType, GoalStatus
+from models.user import User
+from models.common import PyObjectId
+from database import get_goals_collection
+from dependencies.auth import get_current_user
 from bson import ObjectId
 
 router = APIRouter(prefix="/api/v1/goals", tags=["goals"])
@@ -111,7 +112,7 @@ async def create_goal(
     # Create new goal document
     now = datetime.utcnow()
     goal_data = {
-        "user_id": ObjectId(current_user.id),
+        "user_id": current_user.firebase_uid,
         "type": request.type.value,
         "category": request.category,
         "title": request.title,
@@ -133,7 +134,7 @@ async def create_goal(
     # Return the created goal
     return GoalResponse(
         id=goal_id,
-        user_id=str(current_user.id),
+        user_id=current_user.firebase_uid,
         type=request.type,
         category=request.category,
         title=request.title,
@@ -175,7 +176,7 @@ async def get_all_goals(
     
     # Fetch all goals for the current user, sorted by created_at descending
     cursor = goals_collection.find(
-        {"user_id": ObjectId(current_user.id)}
+        {"user_id": current_user.firebase_uid}
     ).sort("created_at", -1)
     
     goals = await cursor.to_list(length=None)
@@ -251,7 +252,7 @@ async def get_goal_by_id(
         )
     
     # Verify the goal belongs to the current user
-    if str(goal["user_id"]) != str(current_user.id):
+    if str(goal["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to access this goal"
@@ -327,7 +328,7 @@ async def update_goal(
         )
     
     # Verify the goal belongs to the current user
-    if str(goal["user_id"]) != str(current_user.id):
+    if str(goal["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to update this goal"
@@ -434,7 +435,7 @@ async def delete_goal(
         )
     
     # Verify the goal belongs to the current user
-    if str(goal["user_id"]) != str(current_user.id):
+    if str(goal["user_id"]) != current_user.firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to delete this goal"
