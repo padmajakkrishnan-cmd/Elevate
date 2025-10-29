@@ -27,8 +27,6 @@ ENV/
 env/
 
 # Environment Variables
-.env
-.env.local
 
 # IDEs
 .vscode/
@@ -77,3 +75,4 @@ htmlcov/
 # Firebase Setup Documentation
 FIREBASE_AUTH_TEST.md
 FIREBASE_SERVICE_ACCOUNT_SETUP.md
+config.bat
