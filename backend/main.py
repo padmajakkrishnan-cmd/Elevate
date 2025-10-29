@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from backend.database import connect_to_mongo, close_mongo_connection, ping_database
-from backend.config import settings
-from backend.routers import auth, profile, game_stats, training_sessions, goals, insights, share, ai_insights
+from database import connect_to_mongo, close_mongo_connection, ping_database
+from config import settings
+from routers import auth, profile, game_stats, training_sessions, goals, insights, share, ai_insights
 
 
 @asynccontextmanager

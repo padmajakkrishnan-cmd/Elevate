@@ -3,13 +3,13 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 from datetime import date as date_type
 from bson import ObjectId
-from backend.models.user import PyObjectId
+from models.common import PyObjectId
 
 
 class TrainingSession(BaseModel):
     """Training session model for tracking player training activities"""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    user_id: PyObjectId = Field(..., description="Reference to the user who owns this training session")
+    user_id: str = Field(..., description="Firebase UID of the user who owns this training session")
     date: date_type = Field(..., description="Date of the training session")
     drill_type: str = Field(..., description="Type of drill performed", min_length=1, max_length=100)
     metrics: Dict[str, Any] = Field(default_factory=dict, description="Training metrics and measurements")

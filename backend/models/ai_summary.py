@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from enum import Enum
 from bson import ObjectId
-from backend.models.user import PyObjectId
+from models.common import PyObjectId
 
 
 class PeriodType(str, Enum):
@@ -31,7 +31,7 @@ class Improvement(BaseModel):
 class AISummary(BaseModel):
     """AI-generated summary model for player performance analysis"""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    user_id: PyObjectId = Field(..., description="Reference to the user who owns this summary")
+    user_id: str = Field(..., description="Firebase UID of the user who owns this summary")
     period: PeriodType = Field(..., description="Summary period type (weekly or monthly)")
     start_date: date = Field(..., description="Start date of the analysis period")
     end_date: date = Field(..., description="End date of the analysis period")

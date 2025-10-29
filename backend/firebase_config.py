@@ -1,6 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, auth
-from backend.config import settings
+from config import settings
 
 # Initialize Firebase Admin SDK
 # For development, you can use the project ID directly

@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime, date
 from enum import Enum
 from bson import ObjectId
-from backend.models.user import PyObjectId
+from models.common import PyObjectId
 
 
 class GoalType(str, Enum):
@@ -26,7 +26,7 @@ class GoalStatus(str, Enum):
 class Goal(BaseModel):
     """Goal model for tracking player goals and objectives"""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    user_id: PyObjectId = Field(..., description="Reference to the user who owns this goal")
+    user_id: str = Field(..., description="Firebase UID of the user who owns this goal")
     type: GoalType = Field(..., description="Type of goal (performance, skill, fitness, team, personal)")
     category: str = Field(..., description="Specific category within the goal type", min_length=1, max_length=100)
     title: str = Field(..., description="Goal title", min_length=1, max_length=200)

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",")]
 
     class Config:
-        env_file = "backend/.env"
+        env_file = ".env"
         case_sensitive = False
 
 

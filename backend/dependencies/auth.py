@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from backend.security import decode_access_token
-from backend.database import get_users_collection
-from backend.models.user import User
-from bson import ObjectId
+from security import decode_access_token
+from database import get_users_collection
+from models.user import User
+from firebase_config import verify_firebase_token
 import jwt
 
 
@@ -18,10 +18,10 @@ async def get_current_user(
     FastAPI dependency to verify JWT token and return the current authenticated user.
     
     This dependency:
-    - Extracts the JWT token from the Authorization header
-    - Decodes and validates the token using the secret key
-    - Extracts the user ID from the token's payload
-    - Fetches the user from the database
+    - Extracts the token from the Authorization header
+    - Tries to decode as JWT first (for session tokens)
+    - Falls back to Firebase token verification if JWT fails
+    - Fetches the user from the database using firebase_uid
     - Returns the User object if valid
     - Raises 401 Unauthorized if token is invalid, expired, or user not found
     
@@ -35,13 +35,14 @@ async def get_current_user(
         HTTPException 401: If token is invalid, expired, or user not found
     """
     token = credentials.credentials
+    firebase_uid = None
     
     try:
-        # Decode and verify the JWT token
+        # Try to decode as JWT token first (session token)
         payload = decode_access_token(token)
-        user_id = payload.get("user_id")
+        firebase_uid = payload.get("firebase_uid")
         
-        if user_id is None:
+        if firebase_uid is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
@@ -55,15 +56,27 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        # If JWT decode fails, try Firebase token verification
+        try:
+            decoded_token = verify_firebase_token(token)
+            firebase_uid = decoded_token.get('uid')
+            
+            if not firebase_uid:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid Firebase token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     
-    # Fetch user from database
+    # Fetch user from database using firebase_uid
     users_collection = get_users_collection()
-    user_data = await users_collection.find_one({"_id": ObjectId(user_id)})
+    user_data = await users_collection.find_one({"firebase_uid": firebase_uid})
     
     if user_data is None:
         raise HTTPException(

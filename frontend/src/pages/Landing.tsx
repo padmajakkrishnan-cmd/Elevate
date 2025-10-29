@@ -37,8 +37,8 @@ const Landing = () => {
         // No profile exists, redirect to create profile
         navigate('/profile/create');
       }
-    } catch (error) {
-      showError('Invalid credentials. Please try again.');
+    } catch (error: any) {
+      showError(error.message || 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -52,8 +52,8 @@ const Landing = () => {
       await register(registerEmail, registerPassword);
       showSuccess('Account created! Let\'s set up your profile.');
       navigate('/profile/create');
-    } catch (error) {
-      showError('Registration failed. Please try again.');
+    } catch (error: any) {
+      showError(error.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -76,8 +76,8 @@ const Landing = () => {
           navigate('/profile/create');
         }
       }
-    } catch (error) {
-      showError('Google authentication failed. Please try again.');
+    } catch (error: any) {
+      showError(error.message || 'Google authentication failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

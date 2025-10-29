@@ -1,57 +1,21 @@
-from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
 import jwt
 from datetime import datetime, timedelta
-from backend.config import settings
-
-# Initialize Argon2 password hasher
-ph = PasswordHasher()
+from config import settings
 
 
-def hash_password(password: str) -> str:
-    """
-    Hash a password using Argon2.
-    
-    Args:
-        password: Plain text password to hash
-        
-    Returns:
-        Hashed password string
-    """
-    return ph.hash(password)
-
-
-def verify_password(password_hash: str, password: str) -> bool:
-    """
-    Verify a password against its hash.
-    
-    Args:
-        password_hash: The hashed password
-        password: Plain text password to verify
-        
-    Returns:
-        True if password matches, False otherwise
-    """
-    try:
-        ph.verify(password_hash, password)
-        return True
-    except VerifyMismatchError:
-        return False
-
-
-def create_access_token(user_id: str, email: str) -> str:
+def create_access_token(firebase_uid: str, email: str) -> str:
     """
     Create a JWT access token for a user.
     
     Args:
-        user_id: User's unique identifier
+        firebase_uid: User's Firebase UID
         email: User's email address
         
     Returns:
         JWT token string
     """
     payload = {
-        "user_id": user_id,
+        "firebase_uid": firebase_uid,
         "email": email,
         "exp": datetime.utcnow() + timedelta(seconds=settings.jwt_expires_in),
         "iat": datetime.utcnow()

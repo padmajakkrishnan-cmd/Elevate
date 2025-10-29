@@ -2,13 +2,13 @@ from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional, List
 from datetime import datetime
 from bson import ObjectId
-from backend.models.user import PyObjectId
+from models.common import PyObjectId
 
 
 class PlayerProfile(BaseModel):
     """Player profile model for athlete information and statistics"""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    user_id: PyObjectId = Field(..., description="Reference to the user who owns this profile")
+    user_id: str = Field(..., description="Firebase UID of the user who owns this profile")
     name: str = Field(..., description="Player's full name", min_length=1, max_length=100)
     team: Optional[str] = Field(None, description="Player's team name", max_length=100)
     position: Optional[str] = Field(None, description="Player's position", max_length=50)
